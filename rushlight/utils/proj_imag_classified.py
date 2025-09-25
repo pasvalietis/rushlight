@@ -843,8 +843,8 @@ class ReferenceImage(ABC, MapFactory):
         else:
             import datetime
 
-            # Create an empty dataset
-            resolution = 194
+            # Create an empty dataset (entire solar disk)
+            resolution = 2500
             # data = np.full((resolution, resolution), np.random.randint(100))
             data = np.random.randint(0, 1e6, size=(resolution, resolution))
 
@@ -989,8 +989,8 @@ class Dataset(ABC):
         
         if isinstance(dataset, YTRegion):
             self.box = dataset
-            self.data = self.box.dataset
-            self.domain_width = np.abs(self.box.right_edge - self.box.left_edge).in_units('cm').to_astropy()
+            self.data = self.box.ds
+            self.domain_width = np.abs(self.box.right_edge - self.box.left_edge).in_units('cm').to_astropy() #TODO generalize this cm parameter
         else:
             if isinstance(dataset, str):
                 self.data = yt.load(dataset)
@@ -1001,7 +1001,5 @@ class Dataset(ABC):
                     self.data = dataset
                     self.box = self.data
                 except:
-                    print('Invalid datacube provided! Using default datacube... \n')
-                    self.data = yt.load(shen_datacube)
-                    self.box = self.data
+                    raise("Datacube loading failed - please check for available fields: box")
             self.domain_width = np.abs(self.data.domain_right_edge - self.data.domain_left_edge).in_units('cm').to_astropy()
