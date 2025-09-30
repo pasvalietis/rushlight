@@ -297,25 +297,6 @@ def get_reference_image(smap_path: str = None, smap=None, **kwargs):
     :rtype: sunpy.map.Map
     """
     try:
-        # # If a SunPy Map object is directly provided, use it
-        # if smap:
-        #     ref_img = smap
-        # else:
-        #     # Try to load from a pickle file
-        #     try:
-        #         if smap_path:
-        #             with open(smap_path, 'rb') as f:
-        #                 ref_img = pickle.load(f)
-        #                 f.close()
-        #         else:
-        #             raise ValueError("No smap_path provided for pickle loading.")
-        #     except:
-        #         # If pickle loading fails, try to load using SunPy's Map function
-        #         if smap_path:
-        #             ref_img = sunpy.map.Map(smap_path)
-        #         else:
-        #             raise ValueError("No smap_path provided for SunPy Map loading.")
-
         # If smap is a path    
         if type(smap) == str:
 
