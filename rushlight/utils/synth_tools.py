@@ -288,7 +288,7 @@ def get_reference_image(smap_path: str = None, smap=None, **kwargs):
     :param smap: A pre-loaded SunPy Map object. If provided, this takes precedence over
                  `smap_path`.
     :type smap: sunpy.map.Map, optional
-    :param kwargs: Keyword arguments passed to :class:`proj_imag_classified.ReferenceImage`
+    :param kwargs: Keyword arguments passed to :class:`rimage.ReferenceImage`
                        if a default reference image needs to be generated.
     :raises FileNotFoundError: If `smap_path` is provided but the file does not exist.
     :raises pickle.PickleError: If `smap_path` points to a pickle file but there is an error during unpickling.
@@ -329,8 +329,8 @@ def get_reference_image(smap_path: str = None, smap=None, **kwargs):
         # If all loading attempts fail, generate a default reference image
         print("No reference image provided or loading failed, generating default\n")
         
-        from rushlight.utils import proj_imag_classified as prim
-        ref_img = prim.ReferenceImage(**kwargs).map
+        from rushlight.utils.rimage import ReferenceImage
+        ref_img = ReferenceImage(**kwargs).map
 
     return ref_img
 
