@@ -288,7 +288,7 @@ def get_reference_image(smap_path: str = None, smap=None, **kwargs):
     :param smap: A pre-loaded SunPy Map object. If provided, this takes precedence over
                  `smap_path`.
     :type smap: sunpy.map.Map, optional
-    :param kwargs: Keyword arguments passed to :class:`proj_imag_classified.ReferenceImage`
+    :param kwargs: Keyword arguments passed to :class:`rimage.ReferenceImage`
                        if a default reference image needs to be generated.
     :raises FileNotFoundError: If `smap_path` is provided but the file does not exist.
     :raises pickle.PickleError: If `smap_path` points to a pickle file but there is an error during unpickling.
@@ -297,30 +297,40 @@ def get_reference_image(smap_path: str = None, smap=None, **kwargs):
     :rtype: sunpy.map.Map
     """
     try:
-        # If a SunPy Map object is directly provided, use it
-        if smap:
-            ref_img = smap
-        else:
-            # Try to load from a pickle file
+        # If smap is a path    
+        if type(smap) == str:
+
+            # Check if it is a path to a pickled sunpy map
             try:
-                if smap_path:
-                    with open(smap_path, 'rb') as f:
+                with open(smap, 'rb') as f:
                         ref_img = pickle.load(f)
                         f.close()
-                else:
-                    raise ValueError("No smap_path provided for pickle loading.")
+
+            # If pickle loading fails, try to load using SunPy's Map function
             except:
-                # If pickle loading fails, try to load using SunPy's Map function
-                if smap_path:
-                    ref_img = sunpy.map.Map(smap_path)
+                if smap:
+                    ref_img = sunpy.map.Map(smap)
                 else:
                     raise ValueError("No smap_path provided for SunPy Map loading.")
+        
+        # If smap is not a path
+        else:
+
+            # Assume that smap is a sunpy object
+            ref_img = smap
+
+            # Check if the object has an instrument parameter
+            try:
+                ref_img.instrument
+            except:
+                raise ValueError("smap object does not contain instrument data - not a sunpy map object?")
     except:
+        
         # If all loading attempts fail, generate a default reference image
         print("No reference image provided or loading failed, generating default\n")
         
-        from rushlight.utils import proj_imag_classified as prim
-        ref_img = prim.ReferenceImage(**kwargs).map
+        from rushlight.utils.rimage import ReferenceImage
+        ref_img = ReferenceImage(**kwargs).map
 
     return ref_img
 
@@ -361,7 +371,7 @@ def code_coords_to_arcsec(code_coord: unyt_array, ref_img: astropy.nddata.NDData
     try:
         center = box.domain_center.value
     except:
-        center = box.center
+        center = box.center.value
 
     x_asec = center_x + (resolution[0] * u.pix * scale[0]) * (x_code_coord - center[0])
     # x_asec = center_x + resolution[0] * scale[0] * (x_code_coord - 0.5) * u.pix

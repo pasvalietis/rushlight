@@ -7,24 +7,20 @@ import numpy as np
 from scipy import ndimage
 
 import yt
-from yt.data_objects.selection_objects.region import YTRegion
 from yt.utilities.orientation import Orientation
 yt.set_log_level(50)
 
-from rushlight.config import config
 from rushlight.emission_models import uv, xrt, xray_bremsstrahlung
 from rushlight.visualization.colormaps import color_tables
 from rushlight.utils import synth_tools as st
+from rushlight.utils.dcube import Dcube
 
 from skimage.util import random_noise
 
 import astropy.units as u
-import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 
 import sunpy.map
-from sunpy.map.map_factory import MapFactory
-from sunpy.coordinates import frames
 from sunpy.map.header_helper import make_fitswcs_header
 from sunpy.coordinates.sun import _radius_from_angular_radius
 
@@ -46,11 +42,25 @@ from abc import ABC
 class SyntheticImage(ABC):
 
     """
-    Parent class for generating synthetic images
+    ## Parent class for generating synthetic images using rad_transfer
+    
+    Contains all of the base functionality necessary for:
+     * **Setting the positions** of the observer and of the feature, relative to the center of the sun
+     * **Orienting and projecting** a 3D dataset according to specified lines of sight
+     * **Generating synthetic brightness maps** based on the selected line of sight
+     * **Plotting arbitrary points** into the same projection plane
+
+    Child classes should mainly overload `make_filter_image_field` to use imaging models compatible with the intended
+    **observation wavelength**, as well as setting appropriate **colormap parameters**.
     """
 
     def __init__(self, dataset = None, smap_path: str=None, smap=None, **kwargs):
-        """Object to contain all of the elements of the synthetic image and simulated flare
+        """
+        ### Constructor for the synthetic image class.
+        
+        Ensures that all necessary components are loaded / interpreted on call.
+        User should provide a 3D dataset and a synthetic map path / object, 
+        otherwise dummy datasets / synthetic maps will be created (see `rimage.ReferenceImage` class).
 
         :param dataset: Either PATH to the local simulated dataset or a loaded yt object
         :type dataset: _string, yt dataset
@@ -114,29 +124,10 @@ class SyntheticImage(ABC):
                               'north_vector': self.northvector}
 
         # Initialize the 3D MHD file to be used for synthetic image
-        shen_datacube = config.SIMULATIONS['DATASET']   # Default datacube TODO make this generic
-        if dataset:
-            if isinstance(dataset, YTRegion):
-                self.box = dataset
-                self.data = self.box.ds
-                self.domain_width = np.abs(self.box.right_edge - self.box.left_edge).in_units('cm').to_astropy()
-            else:
-                if isinstance(dataset, str):
-                    self.data = yt.load(dataset)
-                    self.box = self.data
-                else:
-                    try:
-                        dataset.field_list
-                        self.data = dataset
-                        self.box = self.data
-                    except:
-                        print('Invalid datacube provided! Using default datacube... \n')
-                        self.data = yt.load(shen_datacube)
-                        self.box = self.data
-                self.domain_width = np.abs(self.data.domain_right_edge - self.data.domain_left_edge).in_units('cm').to_astropy()
-        else:
-            print('No datacube provided! Using default datacube... \n')
-            self.data = yt.load(shen_datacube)
+        ds = Dcube(dataset)
+        self.box = ds.box
+        self.data = ds.data
+        self.domain_width = ds.domain_width
 
         # Determine synthetic observation time with respect to observation time
         self.timescale = kwargs.get('timescale', 109.8)
@@ -826,75 +817,3 @@ class SyntheticBandImage():
         imaging_model.make_intensity_fields(self.data)
         field = 'xray_' + str(self.emin) + '_' + str(self.emax) + '_keV_band'
         self.imag_field = field
-
-###############################################
-# Reference Image Classes
-
-@dataclass
-class ReferenceImage(ABC, MapFactory):
-    """
-    Default object for reference image types
-    """
-
-    def __init__(self, ref_img_path: str = None, **kwargs):
-        """Constructor for the default reference image object
-
-        :param ref_img_path: Path to the reference image .fits file, defaults to None
-        :type ref_img_path: str, optional
-        """
-        reference_image = None
-
-        if ref_img_path:
-            m = sunpy.map.Map(ref_img_path)
-        else:
-            import datetime
-
-            # Create an empty dataset
-            resolution = 194
-            # data = np.full((resolution, resolution), np.random.randint(100))
-            data = np.random.randint(0, 1e6, size=(resolution, resolution))
-
-            obstime = datetime.datetime(2000, 1, 1, 0, 0, 0)
-            # Define a reference coordinate and create a header using sunpy.map.make_fitswcs_header
-            skycoord = SkyCoord(0*u.arcsec, 0*u.arcsec, obstime=obstime,
-                                observer='earth', frame=frames.Helioprojective)
-            # Scale set to the following for solar limb to be in the field of view
-            # scale = 220 # Changes bounds of the resulting helioprojective view
-            scale = kwargs.get('scale', 1)
-            
-            instr = kwargs.get('instrument', 'DefaultInstrument')
-            self.instrument = instr
-
-            header_kwargs = {
-                'scale': [scale, scale]*u.arcsec/u.pixel,
-                'telescope': instr,
-                'detector': instr,
-                'instrument': instr,
-                'observatory': instr,
-                'exposure': 0.01 * u.s,
-                'unit': u.Mm
-            }
-
-            header = make_fitswcs_header(data, skycoord, **header_kwargs)
-            default_kwargs = {'data': data, 'header': header}
-            m = sunpy.map.Map(data, header)
-
-        self.map = m
-
-@dataclass
-class XRTReferenceImage(ReferenceImage):
-    """
-    XRT instrument variant of default reference image object
-    """
-
-    def __init__(self, ref_img_path: str = None):
-        super().__init__(ref_img_path, instrument='Xrt')
-
-@dataclass
-class AIAReferenceImage(ReferenceImage):
-    """
-    AIA instrument variant of default reference image object
-    """
-
-    def __init__(self, ref_img_path):
-        super().__init__(ref_img_path)
