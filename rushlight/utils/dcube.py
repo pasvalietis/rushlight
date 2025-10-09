@@ -45,12 +45,59 @@ class Dcube(ABC):
             ch1 = int(dims[1] / fract)
             ch2 = int(dims[2] / fract)
 
+            max_val = arr_range.max()*1000
+
             # Cut out some chunks from the array to create a more visually distinctive dataset.
             # These chunks are set to the maximum value in `arr_range`.
-            arr[dim0 - ch0 : dim0, dim1 - ch1 : dim1, dim2 - ch2 : dim2] = arr_range.max()
-            arr[0:ch0, 0:ch1, 0:ch2] = arr_range.max()
+            arr[dim0 - ch0 : dim0, dim1 - ch1 : dim1, dim2 - ch2 : dim2] = max_val
+            arr[0:ch0, 0:ch1, 0:ch2] = max_val
 
-            # Rotate the array to reorient the data.
+            # Define the border thickness
+            border_size = 1
+
+            # 1. Edges along Dimension 0 (Front and Back planes)
+
+            # Front-face-adjacent volume (spanning 0 to border_size along dim 0)
+            arr[:border_size, :border_size, :] = max_val                    # Top border volume (along dim 1)
+            arr[:border_size, -border_size:, :] = max_val                   # Bottom border volume (along dim 1)
+            arr[:border_size, border_size:-border_size, :border_size] = max_val # Left border volume (along dim 2, excluding corners)
+            arr[:border_size, border_size:-border_size, -border_size:] = max_val # Right border volume (along dim 2, excluding corners)
+
+            # Back-face-adjacent volume (spanning dims[0]-border_size to end along dim 0)
+            arr[-border_size:, :border_size, :] = max_val                   # Top border volume (along dim 1)
+            arr[-border_size:, -border_size:, :] = max_val                  # Bottom border volume (along dim 1)
+            arr[-border_size:, border_size:-border_size, :border_size] = max_val # Left border volume (along dim 2)
+            arr[-border_size:, border_size:-border_size, -border_size:] = max_val # Right border volume (along dim 2)
+
+            # 2. Edges along Dimension 1 (Top and Bottom planes)
+
+            # Top-face-adjacent volume (spanning 0 to border_size along dim 1)
+            arr[:border_size, :border_size, :] = max_val                    # Front border volume (along dim 0)
+            arr[-border_size:, :border_size, :] = max_val                   # Back border volume (along dim 0)
+            arr[border_size:-border_size, :border_size, :border_size] = max_val # Left border volume (along dim 2, excluding corners)
+            arr[border_size:-border_size, :border_size, -border_size:] = max_val # Right border volume (along dim 2, excluding corners)
+
+            # Bottom-face-adjacent volume (spanning dims[1]-border_size to end along dim 1)
+            arr[:border_size, -border_size:, :] = max_val                   # Front border volume (along dim 0)
+            arr[-border_size:, -border_size:, :] = max_val                  # Back border volume (along dim 0)
+            arr[border_size:-border_size, -border_size:, :border_size] = max_val # Left border volume (along dim 2)
+            arr[border_size:-border_size, -border_size:, -border_size:] = max_val # Right border volume (along dim 2)
+
+            # 3. Edges along Dimension 2 (Left and Right planes)
+
+            # Left-face-adjacent volume (spanning 0 to border_size along dim 2)
+            arr[:border_size, :, :border_size] = max_val                    # Front border volume (along dim 0)
+            arr[-border_size:, :, :border_size] = max_val                   # Back border volume (along dim 0)
+            arr[border_size:-border_size, :border_size, :border_size] = max_val # Top border volume (along dim 1, excluding corners)
+            arr[border_size:-border_size, -border_size:, :border_size] = max_val # Bottom border volume (along dim 1, excluding corners)
+
+            # Right-face-adjacent volume (spanning dims[2]-border_size to end along dim 2)
+            arr[:border_size, :, -border_size:] = max_val                   # Front border volume (along dim 0)
+            arr[-border_size:, :, -border_size:] = max_val                  # Back border volume (along dim 0)
+            arr[border_size:-border_size, :border_size, -border_size:] = max_val # Top border volume (along dim 1)
+            arr[border_size:-border_size, -border_size:, -border_size:] = max_val # Bottom border volume (along dim 1)
+            
+            # Rotate the array to reorient the data
             arr = np.rot90(arr, k=-1, axes=(0, 1))
             arr = np.rot90(arr, k=1, axes=(0, 2))
 
