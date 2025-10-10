@@ -1,7 +1,22 @@
 [build-system]
 
-requires = ["setuptools",
-            "setuptools_scm",
-            "wheel"]
-
+requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = 'setuptools.build_meta'
+
+[project]
+name = "rushlight"
+description = "Package to compute synthetic images from numerical simulation outputs of heliophysical processes"
+readme = "README.org"
+authors = [
+    { name = "Ivan Oparin", email = "ivandmit@gmail.com" }
+    { name = "Sbastian Fernandes", email = "sabastianf531@gmail.com" }
+]
+license = { text = "BSD 3-Clause License" }
+dependencies = [
+    "numpy",
+    "astropy>=3.2",
+]
+dynamic = ["version"]
+
+[project.urls]
+homepage = "https://link-to-your-project"
