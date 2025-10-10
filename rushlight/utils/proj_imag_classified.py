@@ -137,13 +137,6 @@ class SyntheticImage(ABC):
         self.synth_obs_time = start_time + timediff
         self.obstime = kwargs.get('obstime', self.synth_obs_time)  # Can manually specify synthetic box observation time
 
-        # Determines the number of pixels required to shift the synthetic image
-        # to align MHD origin with loop foot midpoint. Additionally, determines
-        # the lower left pixel of the synthetic image, relative to the lower left pixel
-        # of the ref_image.
-        # self.zoom, self.image_shift = (None, None)
-        # self.diff_roll(**kwargs)
-
         # Aesthetic settings for the creation of the synthetic image
         self.plot_settings = {'resolution': self.ref_img.data.shape[0],
                               'vmin': kwargs.get('vmin', 1e-15),
@@ -362,17 +355,6 @@ class SyntheticImage(ABC):
         """
 
         self.make_filter_image_field()  # Create emission fields
-
-        # prji = yt.visualization.volume_rendering.off_axis_projection.off_axis_projection(
-        #     self.box,
-        #     self.box.domain_center.value, # center position in code units
-        #     normal_vector=self.view_settings['normal_vector'],  # normal vector (z axis)
-        #     width=self.data.domain_width[0].value,  # width in code units
-        #     resolution=self.plot_settings['resolution'],  # image resolution
-        #     item=self.imag_field,  # respective field that is being projected
-        #     north_vector=self.view_settings['north_vector'],
-        #     depth = kwargs.get('depth', None)
-        #     )
 
         try:
             center = self.box.domain_center.value
