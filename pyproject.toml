@@ -9,7 +9,7 @@ description = "Package to compute synthetic images from numerical simulation out
 readme = "README.org"
 authors = [
     { name = "Ivan Oparin", email = "ivandmit@gmail.com" }
-    { name = "Sbastian Fernandes", email = "sabastianf531@gmail.com" }
+    { name = "Sabastian Fernandes", email = "sabastianf531@gmail.com" }
 ]
 license = { text = "BSD 3-Clause License" }
 dependencies = [
