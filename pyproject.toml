@@ -8,7 +8,7 @@ name = "rushlight"
 description = "Package to compute synthetic images from numerical simulation outputs of heliophysical processes"
 readme = "README.org"
 authors = [
-    { name = "Ivan Oparin", email = "ivandmit@gmail.com" }
+    { name = "Ivan Oparin", email = "ivandmit@gmail.com" },
     { name = "Sabastian Fernandes", email = "sabastianf531@gmail.com" }
 ]
 license = { text = "BSD 3-Clause License" }
