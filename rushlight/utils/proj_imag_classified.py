@@ -11,7 +11,6 @@ from yt.utilities.orientation import Orientation
 yt.set_log_level(50)
 
 from rushlight.emission_models import uv, xrt, xray_bremsstrahlung
-from rushlight.visualization.colormaps import color_tables
 from rushlight.utils import synth_tools as st
 from rushlight.utils.dcube import Dcube
 
@@ -23,6 +22,7 @@ import matplotlib.colors as colors
 import sunpy.map
 from sunpy.map.header_helper import make_fitswcs_header
 from sunpy.coordinates.sun import _radius_from_angular_radius
+from sunpy.visualization import colormaps as cm
 
 from astropy.coordinates import SkyCoord
 from astropy.time import Time, TimeDelta
@@ -273,7 +273,7 @@ class SyntheticImage(ABC):
         print('DefaultInstrument used... Generating xrt intensity_field; self.instr = \'xrt\' \n')
         self.instr = 'xrt'
         imaging_model = xrt.XRTModel("temperature", "number_density", self.channel)
-        cmap['xrt'] = color_tables.xrt_color_table()
+        cmap['xrt'] = cm.cmlist['hinodexrt']
 
         imaging_model.make_intensity_fields(self.data)
 
@@ -701,11 +701,11 @@ class SyntheticFilterImage(SyntheticImage):
 
         if self.instr == 'xrt':
             imaging_model = xrt.XRTModel("temperature", "number_density", self.channel)
-            cmap['xrt'] = color_tables.xrt_color_table()
+            cmap['xrt'] = cm.cmlist['hinodexrt']
         elif self.instr == 'aia':
             imaging_model = uv.UVModel("temperature", "number_density", self.channel)
             try:
-                cmap['aia'] = color_tables.aia_color_table(int(self.channel) * u.angstrom)
+                cmap['aia'] = cm.cmlist['sdoaia' + int(self.channel)]
             except ValueError:
                 raise ValueError("AIA wavelength should be one of the following:"
                                  "1600, 1700, 4500, 94, 131, 171, 193, 211, 304, 335.")
@@ -713,7 +713,7 @@ class SyntheticFilterImage(SyntheticImage):
             self.instr = 'aia'  # Band-aid for lack of different UV model
             imaging_model = uv.UVModel("temperature", "number_density", self.channel)
             try:
-                cmap['aia'] = color_tables.euvi_color_table(int(self.channel) * u.angstrom)
+                cmap['aia'] = cm.cmlist['euvi' + int(self.channel)]
             except ValueError:
                 raise ValueError("AIA wavelength should be one of the following:"
                                  "1600, 1700, 4500, 94, 131, 171, 193, 211, 304, 335.")
@@ -721,7 +721,8 @@ class SyntheticFilterImage(SyntheticImage):
             print('DefaultInstrument used... Generating xrt intensity_field; self.instr = \'xrt\' \n')
             self.instr = 'xrt'
             imaging_model = xrt.XRTModel("temperature", "number_density", self.channel)
-            cmap['xrt'] = color_tables.xrt_color_table()
+            cmap['xrt'] = cm.cmlist['hinodexrt']
+
 
         # Adds intensity fields to the self-contained dataset
         imaging_model.make_intensity_fields(self.data)
