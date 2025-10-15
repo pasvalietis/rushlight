@@ -22,7 +22,7 @@ import matplotlib.colors as colors
 import sunpy.map
 from sunpy.map.header_helper import make_fitswcs_header
 from sunpy.coordinates.sun import _radius_from_angular_radius
-from sunpy.visualization import colormaps as cm
+from sunpy.visualization import colormaps as cm                 # Fetch colormaps from Sunpy for various instruments
 
 from astropy.coordinates import SkyCoord
 from astropy.time import Time, TimeDelta
