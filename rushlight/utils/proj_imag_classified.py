@@ -270,10 +270,19 @@ class SyntheticImage(ABC):
         imaging_model = None
         instr_list = ['xrt', 'aia', 'secchi', 'defaultinstrument']
 
-        print('DefaultInstrument used... Generating xrt intensity_field; self.instr = \'xrt\' \n')
-        self.instr = 'xrt'
-        imaging_model = xrt.XRTModel("temperature", "number_density", self.channel)
-        cmap['xrt'] = cm.cmlist['hinodexrt']
+        print(f'DefaultInstrument used... Generating {self.instr} intensity_field; self.instr = \'{self.instr}\' \n')
+
+        self.instr = self.instr
+        self.channel = self.channel
+
+        if self.instr in ['aia']:
+            imaging_model = uv.UVModel("temperature", "number_density", self.channel)
+            cmap['aia'] = cm.cmlist[f"sdoaia{int(self.channel.value)}"]  # cm.cmlist['hinodexrt']
+        elif self.instr in ['xrt']:
+            imaging_model = xrt.XRTModel("temperature", "number_density", self.channel)
+            cmap['xrt'] = cm.cmlist[f"hinodexrt"]
+
+
 
         imaging_model.make_intensity_fields(self.data)
 
@@ -380,7 +389,10 @@ class SyntheticImage(ABC):
         # the lower left pixel of the synthetic image, relative to the lower left pixel
         # of the ref_image.
         self.zoom, self.image_shift = (None, None)
-        self.diff_roll(**kwargs)
+
+        # Run diff_roll only if reference image is actually provided
+        if not self.ref_img.instrument == 'DefaultInstrument':
+            self.diff_roll(**kwargs)
 
         if self.zoom and not (self.zoom == 1):
             self.image = self.zoom_out(self.image, self.zoom)
@@ -543,7 +555,8 @@ class SyntheticImage(ABC):
 
         return map_ypoints_coords
 
-    def update_dir(self, norm: unyt_array=None, north: unyt_array=None, **kwargs):
+
+    def update_los(self, norm: unyt_array=None, north: unyt_array=None, **kwargs):
         """Updates the normal and north vectors for the view settings and regenerates the image.
 
         :param norm: The new normal vector. If not provided, the current normal vector is retained.
