@@ -14,6 +14,8 @@ import astropy
 from astropy.coordinates import SkyCoord, CartesianRepresentation
 import astropy.units as u
 
+from rushlight.utils.rimage import ReferenceImage
+
 from yt.utilities.orientation import Orientation
 
 ###############################################################
@@ -328,8 +330,7 @@ def get_reference_image(smap_path: str = None, smap=None, **kwargs):
         
         # If all loading attempts fail, generate a default reference image
         print("No reference image provided or loading failed, generating default\n")
-        
-        from rushlight.utils.rimage import ReferenceImage
+
         ref_img = ReferenceImage(**kwargs).map
 
     return ref_img

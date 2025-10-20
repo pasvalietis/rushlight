@@ -32,7 +32,7 @@ class ReferenceImage(ABC, MapFactory):
 
             # Create an empty dataset (entire solar disk)
             resolution = 2500
-            # data = np.full((resolution, resolution), np.random.randint(100))
+
             data = np.random.randint(0, 1e6, size=(resolution, resolution))
 
             obstime = datetime.datetime(2000, 1, 1, 0, 0, 0)
@@ -46,17 +46,25 @@ class ReferenceImage(ABC, MapFactory):
             instr = kwargs.get('instrument', 'DefaultInstrument')
             self.instrument = instr
 
-            header_kwargs = {
-                'scale': [scale, scale]*u.arcsec/u.pixel,
-                'telescope': instr,
-                'detector': instr,
-                'instrument': instr,
-                'observatory': instr,
-                'exposure': 0.01 * u.s,
-                'unit': u.Mm
-            }
+            if 'channel' in kwargs:
+                self.wavelength = kwargs['channel']
+            if 'wavelength' in kwargs:
+                self.wavelength = kwargs['wavelength']
 
-            header = make_fitswcs_header(data, skycoord, **header_kwargs)
+
+            header = make_fitswcs_header(data,
+                                         skycoord,
+                                         #reference_pixel=self.reference_pixel,
+                                         scale=[scale, scale]*u.arcsec/u.pixel,
+                                         telescope= kwargs.get('telescope', instr),
+                                         detector= kwargs.get('detector', instr),
+                                         instrument=kwargs.get('instrument', instr),
+                                         observatory=kwargs.get('observatory', instr),
+                                         wavelength= kwargs.get('wavelength', self.wavelength),
+                                         exposure=kwargs.get('exposure', None),
+                                         unit=kwargs.get('unit', None))
+
+
             default_kwargs = {'data': data, 'header': header}
             m = sunpy.map.Map(data, header)
 

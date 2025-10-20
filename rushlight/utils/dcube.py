@@ -104,8 +104,8 @@ class Dcube(ABC):
             # %%
             # Create a yt object from the NumPy array.
 
-            T_arr = arr         # Assign the generated array to represent temperature.
-            D_arr = arr * 2e-26     # Create a density array by scaling the temperature array.
+            T_arr = arr * 1e-4        # Assign the generated array to represent temperature.
+            D_arr = arr * 2e-22     # Create a density array by scaling the temperature array.
 
             # Define the data dictionary with field names, arrays, and their units.
             # Units can be specified using CGS (centimeter-gram-second) units.
