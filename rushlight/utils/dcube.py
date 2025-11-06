@@ -114,6 +114,7 @@ class Dcube(ABC):
                 "density": (D_arr, "g/cm**3"),
             }
 
+            # NOTE - change this to be symmetric
             # Define the spatial ranges for the bounding box.
             xrange = np.array([-0.5, 0.5])  # Length = 1 unit.
             yrange = np.array([0, 1])  # Length = 1 unit.

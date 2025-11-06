@@ -93,10 +93,11 @@ class SyntheticImage(ABC):
         loop_params = kwargs.get('pkl', None)
         self.loop_coords = None
 
-        if self.vector_arr:
-            self.lat = kwargs.get('lat', 0) * u.deg
-            self.lon = kwargs.get('lon', 0) * u.deg
-        elif loop_params:
+        # Initialize lat and lon, default to 0, 0 
+        self.lat = kwargs.get('lat', 0) * u.deg
+        self.lon = kwargs.get('lon', 0) * u.deg
+
+        if loop_params:
             # Attributes properties of the synthetic loop to the Synthetic Object
             self.radius, self.majax, self.minax, self.height, self.phi0, \
             self.theta0, self.el, self.az, self.samples_num \
@@ -234,10 +235,15 @@ class SyntheticImage(ABC):
             starty = 0
             self.zoom = 1
 
-        # Foot Midpoint from CLB
-        mpt = SkyCoord(lon=self.lon, lat=self.lat, radius=const.R_sun,
-                    frame='heliographic_stonyhurst',
-                    observer='earth', obstime=self.obstime).transform_to(frame='helioprojective')
+        
+        # Define alignment target
+        radius = kwargs.get('radius', const.R_sun)
+        mpt = SkyCoord(lon=self.lon, 
+                       lat=self.lat, 
+                       radius=radius,
+                       frame='heliographic_stonyhurst',
+                       observer='earth', 
+                       obstime=self.obstime).transform_to(frame='helioprojective')
         mpt_pix = self.ref_img.wcs.world_to_pixel(mpt)
 
         # Find difference between pixel positions
@@ -388,10 +394,11 @@ class SyntheticImage(ABC):
         # to align MHD origin with loop foot midpoint. Additionally, determines
         # the lower left pixel of the synthetic image, relative to the lower left pixel
         # of the ref_image.
-        self.zoom, self.image_shift = (None, None)
+        self.zoom, self.image_shift = (1, None)
 
+        force_dr = kwargs.get('force_dr', False)
         # Run diff_roll only if reference image is actually provided
-        if not self.ref_img.instrument == 'DefaultInstrument':
+        if not (self.ref_img.instrument == 'DefaultInstrument') or force_dr:
             self.diff_roll(**kwargs)
 
         if self.zoom and not (self.zoom == 1):

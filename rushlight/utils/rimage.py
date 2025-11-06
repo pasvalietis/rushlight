@@ -31,11 +31,11 @@ class ReferenceImage(ABC, MapFactory):
             import datetime
 
             # Create an empty dataset (entire solar disk)
-            resolution = 2500
+            resolution = kwargs.get('imgres', 2500)
 
             data = np.random.randint(0, 1e6, size=(resolution, resolution))
 
-            obstime = datetime.datetime(2000, 1, 1, 0, 0, 0)
+            obstime = datetime.datetime(2010, 3, 1, 0, 0, 0) # March 1 2010 - First month after SDO launch
             # Define a reference coordinate and create a header using sunpy.map.make_fitswcs_header
             skycoord = SkyCoord(0*u.arcsec, 0*u.arcsec, obstime=obstime,
                                 observer='earth', frame=frames.Helioprojective)
@@ -51,19 +51,32 @@ class ReferenceImage(ABC, MapFactory):
             if 'wavelength' in kwargs:
                 self.wavelength = kwargs['wavelength']
 
+            # Wavelength check
+            try:
+                val = int(self.wavelength.value)
 
-            header = make_fitswcs_header(data,
+                header = make_fitswcs_header(data,
                                          skycoord,
                                          #reference_pixel=self.reference_pixel,
-                                         scale=[scale, scale]*u.arcsec/u.pixel,
+                                         scale=scale,
                                          telescope= kwargs.get('telescope', instr),
                                          detector= kwargs.get('detector', instr),
                                          instrument=kwargs.get('instrument', instr),
                                          observatory=kwargs.get('observatory', instr),
-                                         wavelength= kwargs.get('wavelength', self.wavelength),
+                                         wavelength= kwargs.get('wavelength', self.wavelength), # Does not accept xrt filter names
                                          exposure=kwargs.get('exposure', None),
                                          unit=kwargs.get('unit', None))
-
+            except:
+                header = make_fitswcs_header(data,
+                                         skycoord,
+                                         #reference_pixel=self.reference_pixel,
+                                         scale=scale,
+                                         telescope= kwargs.get('telescope', instr),
+                                         detector= kwargs.get('detector', instr),
+                                         instrument=kwargs.get('instrument', instr),
+                                         observatory=kwargs.get('observatory', instr),
+                                         exposure=kwargs.get('exposure', None),
+                                         unit=kwargs.get('unit', None))
 
             default_kwargs = {'data': data, 'header': header}
             m = sunpy.map.Map(data, header)
