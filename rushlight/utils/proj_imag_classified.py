@@ -87,6 +87,9 @@ class SyntheticImage(ABC):
             self.channel = 193 # Exception for STEREO not having 193 channel
         self.obs = kwargs.get('obs', "DefaultInstrument")  # Name of the observatory
 
+        if isinstance(self.channel, int):
+            self.channel *= u.A
+
         # Determine whether the user has chosen to define their projection plane via
         # Vector array or CLB loop parameters
         self.vector_arr = kwargs.get('vector_arr', None)
@@ -725,7 +728,7 @@ class SyntheticFilterImage(SyntheticImage):
         elif self.instr == 'aia':
             imaging_model = uv.UVModel("temperature", "number_density", self.channel)
             try:
-                cmap['aia'] = cm.cmlist['sdoaia' + int(self.channel)]
+                cmap['aia'] = cm.cmlist['sdoaia' + str(int(self.channel.value))]
             except ValueError:
                 raise ValueError("AIA wavelength should be one of the following:"
                                  "1600, 1700, 4500, 94, 131, 171, 193, 211, 304, 335.")
@@ -733,7 +736,7 @@ class SyntheticFilterImage(SyntheticImage):
             self.instr = 'aia'  # Band-aid for lack of different UV model
             imaging_model = uv.UVModel("temperature", "number_density", self.channel)
             try:
-                cmap['aia'] = cm.cmlist['euvi' + int(self.channel)]
+                cmap['aia'] = cm.cmlist['sdoaia' + str(int(self.channel.value))]
             except ValueError:
                 raise ValueError("AIA wavelength should be one of the following:"
                                  "1600, 1700, 4500, 94, 131, 171, 193, 211, 304, 335.")
