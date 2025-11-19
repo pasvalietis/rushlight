@@ -87,6 +87,20 @@ class SyntheticImage(ABC):
             self.channel = 193 # Exception for STEREO not having 193 channel
         self.obs = kwargs.get('obs', "DefaultInstrument")  # Name of the observatory
 
+        # Initialize the 3D MHD file to be used for synthetic image
+        ds = Dcube(dataset)
+        self.box = ds.box
+        self.data = ds.data
+        self.domain_width = ds.domain_width
+
+        # Determine synthetic observation time with respect to observation time
+        self.timescale = kwargs.get('timescale', 109.8)
+        timestep = self.data.current_time.value.item()
+        timediff = TimeDelta(timestep * self.timescale * u.s)
+        start_time = Time(self.ref_img.reference_coordinate.obstime, scale='utc', format='isot')
+        self.synth_obs_time = start_time + timediff
+        self.obstime = kwargs.get('obstime', self.synth_obs_time)  # Can manually specify synthetic box observation time
+
         # Determine whether the user has chosen to define their projection plane via
         # Vector array or CLB loop parameters
         self.vector_arr = kwargs.get('vector_arr', None)
@@ -108,6 +122,13 @@ class SyntheticImage(ABC):
             self.lat = self.theta0
             self.lon = self.phi0
 
+        # The coordinate to which the projection will be aligned
+        self.mpt_obstime = kwargs.get('mpt_obstime', self.obstime)
+        self.mpt = SkyCoord(lon=self.lon, lat=self.lat, radius=const.R_sun,
+                    frame='heliographic_stonyhurst',
+                    observer='earth', obstime=self.mpt_obstime).transform_to(frame='helioprojective')
+
+        if loop_params:
             # Calculation of the CLB loop properties, including the normvector and northvector
             # used to align the MHD box
             self.loop_coords = st.get_loop_coords(self.dims)
@@ -118,24 +139,14 @@ class SyntheticImage(ABC):
             self.normvector, self.northvector = kwargs['normvector'], kwargs['northvector']
         else:
             self.ifpd, self.normvector, self.northvector = (None, None, None)
-            self.normvector, self.northvector, self.ifpd = st.calc_vect(self.ref_img, vector_arr=self.vector_arr, loop_coords=self.loop_coords, default=False)
+            obsframe=self.mpt.frame
+            
+            self.normvector, self.northvector, self.ifpd = st.calc_vect(self.ref_img, vector_arr=self.vector_arr, 
+                                                                        loop_coords=self.loop_coords, default=False,
+                                                                        obsframe=obsframe)
         # Group the normal and north vectors in self.view_settings
         self.view_settings = {'normal_vector': self.normvector,
                               'north_vector': self.northvector}
-
-        # Initialize the 3D MHD file to be used for synthetic image
-        ds = Dcube(dataset)
-        self.box = ds.box
-        self.data = ds.data
-        self.domain_width = ds.domain_width
-
-        # Determine synthetic observation time with respect to observation time
-        self.timescale = kwargs.get('timescale', 109.8)
-        timestep = self.data.current_time.value.item()
-        timediff = TimeDelta(timestep * self.timescale * u.s)
-        start_time = Time(self.ref_img.reference_coordinate.obstime, scale='utc', format='isot')
-        self.synth_obs_time = start_time + timediff
-        self.obstime = kwargs.get('obstime', self.synth_obs_time)  # Can manually specify synthetic box observation time
 
         # Aesthetic settings for the creation of the synthetic image
         self.plot_settings = {'resolution': self.ref_img.data.shape[0],
@@ -234,11 +245,7 @@ class SyntheticImage(ABC):
             starty = 0
             self.zoom = 1
 
-        # Foot Midpoint from CLB
-        mpt = SkyCoord(lon=self.lon, lat=self.lat, radius=const.R_sun,
-                    frame='heliographic_stonyhurst',
-                    observer='earth', obstime=self.obstime).transform_to(frame='helioprojective')
-        mpt_pix = self.ref_img.wcs.world_to_pixel(mpt)
+        mpt_pix = self.ref_img.wcs.world_to_pixel(self.mpt)
 
         # Find difference between pixel positions
         x1 = float(mpt_pix[0])
@@ -281,7 +288,6 @@ class SyntheticImage(ABC):
         elif self.instr in ['xrt']:
             imaging_model = xrt.XRTModel("temperature", "number_density", self.channel)
             cmap['xrt'] = cm.cmlist[f"hinodexrt"]
-
 
 
         imaging_model.make_intensity_fields(self.data)
@@ -398,7 +404,7 @@ class SyntheticImage(ABC):
             self.image = self.zoom_out(self.image, self.zoom)
 
         if self.image_shift:
-            processor1 = self.ImageProcessor(self.image, (self.image_shift[0], self.image_shift[1])) # Shift right by 2, down by 1
+            processor1 = self.ImageProcessor(self.image, (self.image_shift[0], self.image_shift[1]))
             self.image = processor1.roll_and_crop()
 
         # Fill background
@@ -524,7 +530,10 @@ class SyntheticImage(ABC):
         # Sun Center to bottom left pixel displacement
         sc = SkyCoord(lon=0*u.deg, lat=0*u.deg, radius=1*u.cm,
             frame='heliographic_stonyhurst',
-            observer='earth', obstime=self.obstime).transform_to(frame='helioprojective')
+            observer='earth', 
+            # obstime=self.obstime
+            obstime=self.mpt_obstime
+            ).transform_to(frame='helioprojective')
         sc_pix = self.ref_img.wcs.world_to_pixel(sc)
 
         sc2bl_x = float(0 - sc_pix[0])

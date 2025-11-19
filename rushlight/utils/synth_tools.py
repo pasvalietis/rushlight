@@ -105,10 +105,12 @@ def calc_vect(ref_img: astropy.nddata.NDData, vector_arr: np.ndarray = None, loo
 
     mhd_in_stonyh = np.column_stack((x_mhd, y_mhd, z_mhd))
     stonyh_to_mhd = np.linalg.inv(mhd_in_stonyh)            
-
+    
+    # NOTE - make observation LOS match the time of the alignment coordinate mpt
+    obsframe = kwargs.get('obsframe', ref_img.coordinate_frame)
     los_vector_obs = SkyCoord(CartesianRepresentation(0*u.Mm, 0*u.Mm, -1*u.Mm),
-                        obstime=ref_img.coordinate_frame.obstime,
-                        observer=ref_img.coordinate_frame.observer,
+                        obstime=obsframe.obstime,
+                        observer=obsframe.observer,
                         frame="heliocentric")
     
     imag_rot_matrix = ref_img.rotation_matrix
@@ -119,8 +121,8 @@ def calc_vect(ref_img: astropy.nddata.NDData, vector_arr: np.ndarray = None, loo
     camera_north_obs = SkyCoord(CartesianRepresentation(cam_pt[0]*u.Mm, 
                                                         cam_pt[1]*u.Mm, 
                                                         0*u.Mm),
-                        obstime=ref_img.coordinate_frame.obstime,
-                        observer=ref_img.coordinate_frame.observer,
+                        obstime=obsframe.obstime,
+                        observer=obsframe.observer,
                         frame="heliocentric")
     
     los_vector = los_vector_obs.transform_to('heliographic_stonyhurst')
