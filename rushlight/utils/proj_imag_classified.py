@@ -532,7 +532,6 @@ class SyntheticImage(ABC):
         sc = SkyCoord(lon=0*u.deg, lat=0*u.deg, radius=1*u.cm,
             frame='heliographic_stonyhurst',
             observer='earth', 
-            # obstime=self.obstime
             obstime=self.mpt_obstime
             ).transform_to(frame='helioprojective')
         sc_pix = self.ref_img.wcs.world_to_pixel(sc)
