@@ -245,6 +245,7 @@ class SyntheticImage(ABC):
             starty = 0
             self.zoom = 1
 
+        # NOTE Check for no conflict with differing mpt time
         mpt_pix = self.ref_img.wcs.world_to_pixel(self.mpt)
 
         # Find difference between pixel positions
