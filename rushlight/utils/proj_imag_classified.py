@@ -404,9 +404,9 @@ class SyntheticImage(ABC):
         if self.zoom and not (self.zoom == 1):
             self.image = self.zoom_out(self.image, self.zoom)
 
-        if self.image_shift:
-            processor1 = self.ImageProcessor(self.image, (self.image_shift[0], self.image_shift[1]))
-            self.image = processor1.roll_and_crop()
+        # if self.image_shift:
+        #     processor1 = self.ImageProcessor(self.image, (self.image_shift[0], self.image_shift[1]))
+        #     self.image = processor1.roll_and_crop()
 
         # Fill background
         self.bkg_fill = kwargs.get('bkg_fill', None)
