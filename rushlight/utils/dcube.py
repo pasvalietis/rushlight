@@ -15,9 +15,9 @@ class Dcube(ABC):
         if not dataset:
             # Default values for bbox dimensions (code units)
             fract = 1
-            dim0 = int(193 / fract)
-            dim1 = int(192 / fract)
-            dim2 = int(96 / fract)
+            dim0 = int(24 / fract)  #193
+            dim1 = int(24 / fract)  #192
+            dim2 = int(12 / fract)  #96
 
             # Store dimensions in a list. Example: [depth, height, width].
             dims = [dim0, dim1, dim2]
@@ -105,7 +105,7 @@ class Dcube(ABC):
             # Create a yt object from the NumPy array.
 
             T_arr = arr * 1e-4        # Assign the generated array to represent temperature.
-            D_arr = arr * 2e-22     # Create a density array by scaling the temperature array.
+            D_arr = np.ones_like(arr) * 1.e-15    # Create a density array by scaling the temperature array.
 
             # Define the data dictionary with field names, arrays, and their units.
             # Units can be specified using CGS (centimeter-gram-second) units.
