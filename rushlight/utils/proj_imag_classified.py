@@ -727,7 +727,7 @@ class SyntheticFilterImage(SyntheticImage):
         elif self.instr == 'aia':
             imaging_model = uv.UVModel("temperature", "number_density", self.channel)
             try:
-                cmap['aia'] = cm.cmlist['sdoaia' + int(self.channel)]
+                cmap['aia'] = cm.cmlist['sdoaia' + str(int(self.channel))]
             except ValueError:
                 raise ValueError("AIA wavelength should be one of the following:"
                                  "1600, 1700, 4500, 94, 131, 171, 193, 211, 304, 335.")
@@ -735,7 +735,7 @@ class SyntheticFilterImage(SyntheticImage):
             self.instr = 'aia'  # Band-aid for lack of different UV model
             imaging_model = uv.UVModel("temperature", "number_density", self.channel)
             try:
-                cmap['aia'] = cm.cmlist['euvi' + int(self.channel)]
+                cmap['aia'] = cm.cmlist['sdoaia' + str(int(self.channel))]
             except ValueError:
                 raise ValueError("AIA wavelength should be one of the following:"
                                  "1600, 1700, 4500, 94, 131, 171, 193, 211, 304, 335.")
