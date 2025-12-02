@@ -93,13 +93,7 @@ class SyntheticImage(ABC):
         self.data = ds.data
         self.domain_width = ds.domain_width
 
-        # Determine synthetic observation time with respect to observation time
-        self.timescale = kwargs.get('timescale', 109.8)
-        timestep = self.data.current_time.value.item()
-        timediff = TimeDelta(timestep * self.timescale * u.s)
-        start_time = Time(self.ref_img.reference_coordinate.obstime, scale='utc', format='isot')
-        self.synth_obs_time = start_time + timediff
-        self.obstime = kwargs.get('obstime', self.synth_obs_time)  # Can manually specify synthetic box observation time
+        self.obstime = kwargs.get('obstime', self.ref_img.reference_coordinate.obstime)  # Can manually specify synthetic box observation time
 
         # Determine whether the user has chosen to define their projection plane via
         # Vector array or CLB loop parameters
@@ -231,6 +225,7 @@ class SyntheticImage(ABC):
         synth_fpt_asec = st.code_coords_to_arcsec(synth_fpt_2d, self.ref_img, box=self.box)
         self.ori_pix = self.ref_img.wcs.world_to_pixel(synth_fpt_asec)
 
+        # NOTE -- Apply Zoom to WCS coordinate directly
         if self.zoom and self.zoom < 1:
             # Find coordinates of bottom left corner of "zoom area"
             zoomed_img = ndimage.zoom(self.ref_img.data, self.zoom)  # scale<1
