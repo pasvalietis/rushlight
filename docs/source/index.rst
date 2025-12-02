@@ -25,7 +25,9 @@ Rushlight can be used to create synthetic observations and sunpy map objects com
    :caption: Modules:
 
    proj_imag_classified
-   color_tables
+   dcube
+   rimage
+   synth_tools
    uv
    xrt
    xray_bremsstrahlung
