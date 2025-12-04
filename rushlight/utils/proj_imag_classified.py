@@ -87,6 +87,14 @@ class SyntheticImage(ABC):
             self.channel = 193 # Exception for STEREO not having 193 channel
         self.obs = kwargs.get('obs', "DefaultInstrument")  # Name of the observatory
 
+        # Initialize the 3D MHD file to be used for synthetic image
+        ds = Dcube(dataset)
+        self.box = ds.box
+        self.data = ds.data
+        self.domain_width = ds.domain_width
+
+        self.obstime = kwargs.get('obstime', self.ref_img.reference_coordinate.obstime)  # Can manually specify synthetic box observation time
+
         # Determine whether the user has chosen to define their projection plane via
         # Vector array or CLB loop parameters
         self.vector_arr = kwargs.get('vector_arr', None)
@@ -108,6 +116,13 @@ class SyntheticImage(ABC):
             self.lat = self.theta0
             self.lon = self.phi0
 
+        # The coordinate to which the projection will be aligned
+        self.mpt_obstime = kwargs.get('mpt_obstime', self.obstime)
+        self.mpt = SkyCoord(lon=self.lon, lat=self.lat, radius=const.R_sun,
+                    frame='heliographic_stonyhurst',
+                    observer='earth', obstime=self.mpt_obstime).transform_to(frame='helioprojective')
+
+        if loop_params:
             # Calculation of the CLB loop properties, including the normvector and northvector
             # used to align the MHD box
             self.loop_coords = st.get_loop_coords(self.dims)
@@ -118,24 +133,14 @@ class SyntheticImage(ABC):
             self.normvector, self.northvector = kwargs['normvector'], kwargs['northvector']
         else:
             self.ifpd, self.normvector, self.northvector = (None, None, None)
-            self.normvector, self.northvector, self.ifpd = st.calc_vect(self.ref_img, vector_arr=self.vector_arr, loop_coords=self.loop_coords, default=False)
+            obsframe=self.mpt.frame
+            
+            self.normvector, self.northvector, self.ifpd = st.calc_vect(self.ref_img, vector_arr=self.vector_arr, 
+                                                                        loop_coords=self.loop_coords, default=False,
+                                                                        obsframe=obsframe)
         # Group the normal and north vectors in self.view_settings
         self.view_settings = {'normal_vector': self.normvector,
                               'north_vector': self.northvector}
-
-        # Initialize the 3D MHD file to be used for synthetic image
-        ds = Dcube(dataset)
-        self.box = ds.box
-        self.data = ds.data
-        self.domain_width = ds.domain_width
-
-        # Determine synthetic observation time with respect to observation time
-        self.timescale = kwargs.get('timescale', 109.8)
-        timestep = self.data.current_time.value.item()
-        timediff = TimeDelta(timestep * self.timescale * u.s)
-        start_time = Time(self.ref_img.reference_coordinate.obstime, scale='utc', format='isot')
-        self.synth_obs_time = start_time + timediff
-        self.obstime = kwargs.get('obstime', self.synth_obs_time)  # Can manually specify synthetic box observation time
 
         # Aesthetic settings for the creation of the synthetic image
         self.plot_settings = {'resolution': self.ref_img.data.shape[0],
@@ -220,6 +225,7 @@ class SyntheticImage(ABC):
         synth_fpt_asec = st.code_coords_to_arcsec(synth_fpt_2d, self.ref_img, box=self.box)
         self.ori_pix = self.ref_img.wcs.world_to_pixel(synth_fpt_asec)
 
+        # NOTE -- Apply Zoom to WCS coordinate directly
         if self.zoom and self.zoom < 1:
             # Find coordinates of bottom left corner of "zoom area"
             zoomed_img = ndimage.zoom(self.ref_img.data, self.zoom)  # scale<1
@@ -234,11 +240,8 @@ class SyntheticImage(ABC):
             starty = 0
             self.zoom = 1
 
-        # Foot Midpoint from CLB
-        mpt = SkyCoord(lon=self.lon, lat=self.lat, radius=const.R_sun,
-                    frame='heliographic_stonyhurst',
-                    observer='earth', obstime=self.obstime).transform_to(frame='helioprojective')
-        mpt_pix = self.ref_img.wcs.world_to_pixel(mpt)
+        # NOTE Check for no conflict with differing mpt time
+        mpt_pix = self.ref_img.wcs.world_to_pixel(self.mpt)
 
         # Find difference between pixel positions
         x1 = float(mpt_pix[0])
@@ -283,7 +286,6 @@ class SyntheticImage(ABC):
             cmap['xrt'] = cm.cmlist[f"hinodexrt"]
 
 
-
         imaging_model.make_intensity_fields(self.data)
 
         field = str(self.instr) + '_filter_band'
@@ -291,63 +293,6 @@ class SyntheticImage(ABC):
 
         if self.plot_settings:
             self.plot_settings['cmap'] = cmap[self.instr]
-
-    class ImageProcessor:
-        def __init__(self, image, image_shift):
-            self.image = image
-            self.image_shift = image_shift
-
-        def roll_and_crop(self):
-            # Create the new array filled with the minimum value of the original image
-            new_arr = np.ones_like(self.image) * self.image.min()
-
-            xshift = self.image_shift[0]
-            yshift = self.image_shift[1]
-
-            # Get the dimensions of the image
-            img_height, img_width = self.image.shape
-
-            # Determine the slice boundaries for the original image
-            # and the insertion points in new_arr
-
-            # X-direction (columns)
-            if xshift > 0:
-                # We want the right portion of the original image
-                # and place it starting from xshift in new_arr
-                src_x_slice = slice(0, img_width - xshift)
-                dest_x_slice = slice(xshift, img_width)
-            elif xshift < 0:
-                # We want the left portion of the original image
-                # and place it ending at img_width + xshift in new_arr
-                src_x_slice = slice(-xshift, img_width)
-                dest_x_slice = slice(0, img_width + xshift)
-            else: # xshift == 0
-                src_x_slice = slice(0, img_width)
-                dest_x_slice = slice(0, img_width)
-
-            # Y-direction (rows)
-            if yshift > 0:
-                # We want the bottom portion of the original image
-                # and place it starting from yshift in new_arr
-                src_y_slice = slice(0, img_height - yshift)
-                dest_y_slice = slice(yshift, img_height)
-            elif yshift < 0:
-                # We want the top portion of the original image
-                # and place it ending at img_height + yshift in new_arr
-                src_y_slice = slice(-yshift, img_height)
-                dest_y_slice = slice(0, img_height + yshift)
-            else: # yshift == 0
-                src_y_slice = slice(0, img_height)
-                dest_y_slice = slice(0, img_height)
-
-            # Extract the relevant part from the original image
-            sliced_portion = self.image[src_y_slice, src_x_slice]
-
-            # Insert the sliced portion into new_arr at the shifted position
-            new_arr[dest_y_slice, dest_x_slice] = sliced_portion
-
-            self.image = new_arr # Update self.image with the new, cropped array
-            return self.image
 
     def proj_and_imag(self, **kwargs):
         """Projects the synthetic dataset and applies image zoom and shift
@@ -381,6 +326,7 @@ class SyntheticImage(ABC):
             # depth = kwargs.get('depth', None)
             )
 
+        # NOTE: Confirm that this is not band-aid for incorrect norm vector
         # transpose synthetic image (swap axes for imshow)
         self.image = np.array(prji).T
 
@@ -396,10 +342,6 @@ class SyntheticImage(ABC):
 
         if self.zoom and not (self.zoom == 1):
             self.image = self.zoom_out(self.image, self.zoom)
-
-        if self.image_shift:
-            processor1 = self.ImageProcessor(self.image, (self.image_shift[0], self.image_shift[1])) # Shift right by 2, down by 1
-            self.image = processor1.roll_and_crop()
 
         # Fill background
         self.bkg_fill = kwargs.get('bkg_fill', None)
@@ -487,10 +429,14 @@ class SyntheticImage(ABC):
         if self.poisson:
             self.image = 0.5*np.max(self.image) * random_noise(self.image / (0.5*np.max(self.image)), mode='poisson')
         
+        ref_pix = u.Quantity((self.reference_pixel[0].value - self.image_shift[0],
+                              self.reference_pixel[1].value - self.image_shift[1],
+                              ))*u.pix
+
         # Creating header using sunpy
         header = make_fitswcs_header(self.image,
                                      coordinate=self.reference_coord,
-                                     reference_pixel=self.reference_pixel,
+                                     reference_pixel=ref_pix,
                                      scale=self.scale,
                                      telescope=self.telescope,
                                      detector=self.detector,
@@ -524,7 +470,9 @@ class SyntheticImage(ABC):
         # Sun Center to bottom left pixel displacement
         sc = SkyCoord(lon=0*u.deg, lat=0*u.deg, radius=1*u.cm,
             frame='heliographic_stonyhurst',
-            observer='earth', obstime=self.obstime).transform_to(frame='helioprojective')
+            observer='earth', 
+            obstime=self.mpt_obstime
+            ).transform_to(frame='helioprojective')
         sc_pix = self.ref_img.wcs.world_to_pixel(sc)
 
         sc2bl_x = float(0 - sc_pix[0])
@@ -718,7 +666,7 @@ class SyntheticFilterImage(SyntheticImage):
         elif self.instr == 'aia':
             imaging_model = uv.UVModel("temperature", "number_density", self.channel)
             try:
-                cmap['aia'] = cm.cmlist['sdoaia' + int(self.channel)]
+                cmap['aia'] = cm.cmlist['sdoaia' + str(int(self.channel))]
             except ValueError:
                 raise ValueError("AIA wavelength should be one of the following:"
                                  "1600, 1700, 4500, 94, 131, 171, 193, 211, 304, 335.")
@@ -726,7 +674,7 @@ class SyntheticFilterImage(SyntheticImage):
             self.instr = 'aia'  # Band-aid for lack of different UV model
             imaging_model = uv.UVModel("temperature", "number_density", self.channel)
             try:
-                cmap['aia'] = cm.cmlist['euvi' + int(self.channel)]
+                cmap['aia'] = cm.cmlist['sdoaia' + str(int(self.channel))]
             except ValueError:
                 raise ValueError("AIA wavelength should be one of the following:"
                                  "1600, 1700, 4500, 94, 131, 171, 193, 211, 304, 335.")
