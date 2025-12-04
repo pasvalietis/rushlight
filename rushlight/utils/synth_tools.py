@@ -339,8 +339,7 @@ def get_reference_image(smap_path: str = None, smap=None, **kwargs):
 
 def code_coords_to_arcsec(code_coord: unyt_array, ref_img: astropy.nddata.NDData = None, **kwargs):
     """Converts coordinates in simulated datcube into arcsecond coordinates from the 
-    reference image observer. Assumes that x axis extents in code units are [-.5 to .5] 
-    and y axis is changing from 0 to 1.
+    reference image observer.
 
     :param code_coord: Projected 2D coordinates of synthetic footpoint
     :type code_coord: unyt_array
@@ -377,9 +376,6 @@ def code_coords_to_arcsec(code_coord: unyt_array, ref_img: astropy.nddata.NDData
         center = box.center.value
 
     x_asec = center_x + (resolution[0] * u.pix * scale[0]) * (x_code_coord - center[0])
-    # x_asec = center_x + resolution[0] * scale[0] * (x_code_coord - 0.5) * u.pix
-    # y_asec = center_y + resolution[1] * scale[1] * y_code_coord * u.pix
-    # y_asec = center_y + (resolution[1] * u.pix * scale[1]) * (y_code_coord - 0.5)
     y_asec = center_y + (resolution[1] * u.pix * scale[1]) * (y_code_coord - center[1])
 
     print(center[0])
