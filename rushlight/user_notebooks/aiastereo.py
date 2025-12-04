@@ -1,12 +1,13 @@
 import sunpy.map
 from sunpy.net import Fido, attrs as a
 from sunpy.coordinates import frames, Helioprojective, HeliographicStonyhurst, Heliocentric, get_earth
-import sunpy.data.sample
+import sunpy.coordinates
 from sunpy.map import make_fitswcs_header
 
 from aiapy.calibrate import update_pointing, register, correct_degradation, normalize_exposure
 
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, CartesianRepresentation
+from astropy.coordinates.matrix_utilities import rotation_matrix
 import astropy.units as u
 import astropy.constants as const
 
@@ -16,7 +17,8 @@ import numpy as np
 
 from CoronalLoopBuilder.builder import CoronalLoopBuilder # type: ignore
 from rushlight.utils.proj_imag_classified import SyntheticFilterImage as sfi
-from rushlight.utils.proj_imag_classified import XRTReferenceImage
+# from rushlight.utils.proj_imag_classified import XRTReferenceImage
+from rushlight.utils.rimage import XRTReferenceImage
 from rushlight.config import config
 
 import itertools
@@ -586,6 +588,7 @@ def get_angle(pta1, pta2, ptb1, ptb2):
 
     return theta
 
+# Either Trim Code or include link/reference
 class Box:
     """
     Represents a 3D box in solar or observer coordinates defined by its origin, center, dimensions, and resolution.
@@ -863,45 +866,159 @@ class Box:
         return self._dims
 
 def plot_edges(ax, m, sfiObj, **kwargs):
-    # 1. Define observer and box parameters
-    time = m.reference_coordinate.obstime
-    observer = get_earth(time)
-    dom_width = sfiObj.domain_width * (1-sfiObj.zoom)
+    # Get domain widths from 3d object
+    dom_width = sfiObj.domain_width
+
+    # Scale with sfi object if necessary
+    # if sfiObj.zoom < 1:
+    #    dom_width *= (1 - sfiObj.zoom)
+
     box_dims = u.Quantity([
         dom_width[2],
         dom_width[1],
         dom_width[0],
     ])
-    box_res = 1.4 * u.Mm
+    box_res = 1.4 * u.Mm    # Only affects _dims_pix
 
     lon = sfiObj.lon
     lat = sfiObj.lat
 
-    frame_obs = Helioprojective(observer=observer, obstime=time)
-    box_origin = SkyCoord(lon=lon, lat=lat, radius=696 * u.Mm,
-                    frame='heliographic_stonyhurst',
-                    observer=observer, obstime=time)
+    radius = kwargs.get('radius', const.R_sun)
+
+    # Define observer parameters
+    time = m.reference_coordinate.obstime
+    observer = get_earth(time)
+    frame_obs = Helioprojective(
+                observer=observer, 
+                obstime=time
+                )
+
+    box_origin = SkyCoord(lon=lon, lat=lat, 
+                          radius=radius,
+                          frame='heliographic_stonyhurst',
+                          observer=observer, 
+                          obstime=time
+                          )
+    
     frame_hcc = Heliocentric(observer=box_origin, obstime=time)
     box_origin_hcc = box_origin.transform_to(frame_hcc)
-    box_center = SkyCoord(x=box_origin_hcc.x,
-                            y=box_origin_hcc.y,
+
+    # Have box_center be calculated based on direction of norm / north
+    box_center = SkyCoord(x=box_origin_hcc.x,# + box_dims[0] / 2,
+                            y=box_origin_hcc.y,# + box_dims[1] / 2,
                             z=box_origin_hcc.z + box_dims[2] / 2,
                             frame=box_origin_hcc.frame)
     
-    # 2. Instantiate the Box object
+    # Instantiate the Box object
     box = Box(frame_obs=frame_obs, box_origin=box_origin, box_center=box_center, box_dims=box_dims, box_res=box_res)
 
-    # 5. Overlay Box edges onto the map
-    # Transform box edges to the map's coordinate frame
-    bottom_edges_transformed = [edge.transform_to(m.coordinate_frame) for edge in box.bottom_edges]
-    non_bottom_edges_transformed = [edge.transform_to(m.coordinate_frame) for edge in box.non_bottom_edges]
+    target_frame = kwargs.get('target_frame', 
+                              m.coordinate_frame
+                              )
 
-    # Plot bottom edges in blue and non-bottom edges in red
+    # Overlay Box edges onto the map
+    # Transform box edges to the map's coordinate frame
+    bottom_edges_transformed = [edge.transform_to(target_frame) for edge in box.bottom_edges]
+    non_bottom_edges_transformed = [edge.transform_to(target_frame) for edge in box.non_bottom_edges]
+
+    # Specify rotation matrix to apply to all edge coordinates
+    deg_rot = kwargs.get('rotation', None)
+    if deg_rot:
+      R = rotation_matrix(deg_rot*u.deg, axis='y')
+
+      new_bottom_edges = []
+      for edge in bottom_edges_transformed:
+        cart_vect = edge.cartesian.xyz.value
+        unit = edge.cartesian.x.unit
+
+        rot_vect = R @ cart_vect
+        
+        rotated_cartesian_rep = CartesianRepresentation(
+            rot_vect[0] * unit,
+            rot_vect[1] * unit,
+            rot_vect[2] * unit
+          )
+        
+        rotated_coord = SkyCoord(
+          rotated_cartesian_rep,
+          frame=edge.frame
+          )
+        
+        new_bottom_edges.append(rotated_coord)
+
+      new_non_bottom_edges = []
+      for edge in non_bottom_edges_transformed:
+        cart_vect = edge.cartesian.xyz.value
+        unit = edge.cartesian.x.unit
+
+        rot_vect = R @ cart_vect
+        
+        rotated_cartesian_rep = CartesianRepresentation(
+            rot_vect[0] * unit,
+            rot_vect[1] * unit,
+            rot_vect[2] * unit
+          )
+        
+        rotated_coord = SkyCoord(
+          rotated_cartesian_rep,
+          frame=edge.frame
+          )
+        
+        new_non_bottom_edges.append(rotated_coord)
+
+      bottom_edges_transformed = new_bottom_edges
+      non_bottom_edges_transformed = new_non_bottom_edges
+
+    # Specify if the box edges should be adjusted based on SfiObj origin shift
+    ori_shift = kwargs.get('shift', False)
+    if ori_shift:
+      new_bottom_edges = []
+      for edge in bottom_edges_transformed:
+        cart_vect = edge.cartesian.xyz.value
+        unit = edge.cartesian.x.unit
+        
+        shifted_cartesian_rep = CartesianRepresentation(
+            cart_vect[0] * unit,
+            cart_vect[1] * unit,
+            cart_vect[2] * unit - (box_dims[2] / 2)
+          )
+        
+        shifted_coord = SkyCoord(
+          shifted_cartesian_rep,
+          frame=edge.frame
+          )
+        
+        new_bottom_edges.append(shifted_coord)
+
+      new_non_bottom_edges = []
+      for edge in non_bottom_edges_transformed:
+        cart_vect = edge.cartesian.xyz.value
+        unit = edge.cartesian.x.unit
+        
+        shifted_cartesian_rep = CartesianRepresentation(
+            cart_vect[0] * unit,
+            cart_vect[1] * unit,
+            cart_vect[2] * unit- (box_dims[2] / 2)
+          )
+        
+        shifted_coord = SkyCoord(
+          shifted_cartesian_rep,
+          frame=edge.frame
+          )
+        
+        new_non_bottom_edges.append(shifted_coord)
+
+      bottom_edges_transformed = new_bottom_edges
+      non_bottom_edges_transformed = new_non_bottom_edges
+
+    color = kwargs.get('color', 'blue')
+
+    # Plot edges
     alpha = 0.6
     for c in bottom_edges_transformed:
-        ax.plot_coord(c, color='white', linewidth=2, alpha=alpha)
+        ax.plot_coord(c, color=color, linewidth=2, alpha=alpha)
     for c in non_bottom_edges_transformed:
-        ax.plot_coord(c, color='white', linewidth=2, alpha=alpha - 0.2)
+        ax.plot_coord(c, color=color, linewidth=2, alpha=alpha - 0.2)
     
     axs = kwargs.get('axes', False)
     if axs:
@@ -950,9 +1067,9 @@ def plot_edges(ax, m, sfiObj, **kwargs):
       # Annotate MHD axis labels where axes end
       fs = kwargs.get('fontsize', 16)
       xoff = kwargs.get('xoffset', 10)
-      ax.text(cenpix[0] + xoff, cenpix[1], 'y', color='black', fontsize=fs)
-      ax.text(bexpix[0] + xoff, bexpix[1], 'z', color='black', fontsize=fs)
-      ax.text(beypix[0] + xoff, beypix[1], 'x', color='black', fontsize=fs)
+      ax.text(cenpix[0] + xoff, cenpix[1], 'y', color='grey', fontsize=fs)
+      ax.text(bexpix[0] + xoff, bexpix[1], 'z', color='grey', fontsize=fs)
+      ax.text(beypix[0] + xoff, beypix[1], 'x', color='grey', fontsize=fs)
 
 def adj_plotlim(m, ax):
    
