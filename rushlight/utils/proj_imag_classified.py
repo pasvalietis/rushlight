@@ -326,6 +326,7 @@ class SyntheticImage(ABC):
             # depth = kwargs.get('depth', None)
             )
 
+        # NOTE: Confirm that this is not band-aid for incorrect norm vector
         # transpose synthetic image (swap axes for imshow)
         self.image = np.array(prji).T
 
