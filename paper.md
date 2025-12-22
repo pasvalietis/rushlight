@@ -29,9 +29,9 @@ The rushlight Python package provides a framework for creating synthetic images 
 # Statement of need
 rushlight is a Python package which performs forward modelling of simulated 3D plasma datasets in the coronal environment. Its core functionality lies in creating synthetic observables in Soft X-Ray filter bands produced by XRT, and Ultraviolet / Extreme Ultraviolet filter bands produced by AIA.
 
-rushlight adapts some of the core functionality of the FORWARD package, written in the Interactive Data Language (IDL). It is under active development, and aims to be continually improved as to implement more of FORWARD's features.
+rushlight adapts some of the core functionality of the FORWARD package, written in the Interactive Data Language (IDL) [@FORWARD]. It is under active development, and aims to be continually improved as to implement more of FORWARD's features.
 
-Part of rushlight's core motivation is to make EUV / SXR forward modelling more accessible to the growing company of astrophysicists who utilize the python language to develop and share scientific software. To this effect, rushlight has been developed as to be both compatible and scalable with release versions of other astrophysics open-source software, such as Astropy, SunPy, and XRTpy.
+Part of rushlight's core motivation is to make EUV / SXR forward modelling more accessible to the growing company of astrophysicists who utilize the python language to develop and share scientific software. To this effect, rushlight has been developed as to be both compatible and scalable with release versions of other astrophysics open-source software, such as Astropy [@ASTROPY], SunPy [@SUNPY], and XRTpy [@XRTPY].
 
 # Mathematics
 Test
