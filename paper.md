@@ -31,7 +31,7 @@ rushlight is a Python package which performs forward modelling of simulated 3D p
 
 rushlight adapts some of the core functionality of the FORWARD package, written in the Interactive Data Language (IDL) [@FORWARD]. It is under active development, and aims to be continually improved as to implement more of FORWARD's features.
 
-Part of rushlight's core motivation is to make EUV / SXR forward modelling more accessible to the growing company of astrophysicists who utilize the python language to develop and share scientific software. To this effect, rushlight has been developed as to be both compatible and scalable with release versions of other astrophysics open-source software, such as Astropy [@ASTROPY], SunPy [@SUNPY], and XRTpy [@XRTPY].
+Part of rushlight's core motivation is to make EUV / SXR forward modelling more accessible to the growing company of astrophysicists who utilize the python language to develop and share scientific software. To this effect, rushlight has been developed as to be both compatible and scalable with release versions of other astrophysics open-source software, such as Astropy [@ASTROPY1] [@ASTROPY2] [@ASTROPY3], SunPy [@SUNPY], and XRTpy [@XRTPY].
 
 # Mathematics
 Test
