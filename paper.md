@@ -44,6 +44,13 @@ rushlight's modules are organized as to promote the addition of new emission mod
 - `rushlight.utils.emission_models.uv.UVModel` - This module is used by `rushlight.utils.proj_imag_classified.SyntheticFilterImage` to interpolate the temperature response function for a specified AIA channel, and then to utilize the density and temperature data from the simulation dataset to estimate the UV intensity of the solar plasma.
 - `rushlight.utils.emission_models.xrt.XRTModel` - Similar to `rushlight.utils.emission_models.uv.UVModel`, this module instead interpolates the temperature response function for a specified combination of XRT filters to estimate the SXR intensity of the simulation dataset.
 
+As referenced above, rushlight is dependent on a number of packages to provide critical functionality. 
+
+The yt Python package [@YT_PROJECT] provides the yt.off_axis_projection module, which is used for translating the provided 3D simulation dataset into a 2D image by efficiently integrating temperature and density information along an arbitrary line of sight. 
+
+The SunPy [@SUNPY] package is the modus operandi by which the 2D observables are made accessible by the package. It provides the sunpy.map.header_helper.make_fitswcs_header module, which allows the synthetic observable's properties (such as time and coordinate data) to be customized and exported as a .fits file along with the projected image. It also provides the sunpy.map class, which allows easy access to the observable's properties and World Coordinate System (WCS), as well as visualization of the final synthetic observable in the observation plane.
+
+The Astropy [@ASTROPY1] [@ASTROPY2] [@ASTROPY3] package is used largely for its astropy.coordinates.SkyCoord module, which provides the flexible framework for calculating the relative positions of observables in physical space, as well as transformation to and from different reference frames (eg. Heliographic Stonyhurst, Heliocentric, Helioprojective). Additionally, the astropy.units module is used extensively to dynamically determine the resulting units of various physical calculations across ruslight's observable alignment procedure.
 
 # Acknowledgements
 Test
