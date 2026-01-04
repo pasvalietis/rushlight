@@ -29,9 +29,9 @@ The rushlight Python package provides a framework for creating synthetic images 
 # Statement of need
 rushlight is a Python package which performs forward modelling of simulated 3D plasma datasets in the coronal environment. Its core functionality lies in creating synthetic observables in Soft X-Ray filter bands produced by XRT, and Ultraviolet / Extreme Ultraviolet filter bands produced by AIA.
 
-rushlight adapts some of the core functionality of the FORWARD package, written in the Interactive Data Language (IDL) [@FORWARD]. It is under active development, and aims to be continually improved as to implement more of FORWARD's features.
+rushlight adapts some of the core functionality of the FORWARD package, written in the Interactive Data Language (IDL) [@FORWARD]. rushlight is under active development, and aims to be continually improved as to implement more of FORWARD's features.
 
-Part of rushlight's core motivation is to make EUV / SXR forward modelling more accessible to the growing company of astrophysicists who utilize the python language to develop and share scientific software. To this effect, rushlight has been developed as to be both compatible and scalable with release versions of other astrophysics open-source software, such as Astropy [@ASTROPY1] [@ASTROPY2] [@ASTROPY3], SunPy [@SUNPY], and XRTpy [@XRTPY].
+Part of rushlight's core motivation is to make EUV / SXR forward modelling more accessible to the growing company of astrophysicists who utilize the Python language to develop and share scientific software. To this effect, rushlight has been developed as to be both compatible and scalable with release versions of other astrophysics open-source software, such as Astropy [@ASTROPY1] [@ASTROPY2] [@ASTROPY3], SunPy [@SUNPY], and XRTpy [@XRTPY]. By creating a forward-modeling solution built upon newer and actively maintained dependencies, rushlight can be integrated into state-of-the-art solar physics research.
 
 # Package Structure
 rushlight's modules are organized as to promote the addition of new emission models and instruments to produce synthetic observables with. The package's main functionality comes from the following classes:
@@ -43,6 +43,7 @@ rushlight's modules are organized as to promote the addition of new emission mod
 - `rushlight.utils.synth_tools.calc_vect` - rushlight accepts user specification of 3 points in 3D space located on the intended projection plane for their simulation data. From these 3 points, it uses the simulated observer's location to calculate the vector that is normal to this plane, and the vector that determines the rotation of the projection relative to the normal axis. These `norm` and `north` vectors, respectively, are used in the yt.off_axis_projection module to calculate projection orientation.
 - `rushlight.utils.emission_models.uv.UVModel` - This module is used by `rushlight.utils.proj_imag_classified.SyntheticFilterImage` to interpolate the temperature response function for a specified AIA channel, and then to utilize the density and temperature data from the simulation dataset to estimate the UV intensity of the solar plasma.
 - `rushlight.utils.emission_models.xrt.XRTModel` - Similar to `rushlight.utils.emission_models.uv.UVModel`, this module instead interpolates the temperature response function for a specified combination of XRT filters to estimate the SXR intensity of the simulation dataset.
+
 
 # Acknowledgements
 Test
