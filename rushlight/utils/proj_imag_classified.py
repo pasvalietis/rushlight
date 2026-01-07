@@ -10,6 +10,7 @@ import yt
 from yt.utilities.orientation import Orientation
 yt.set_log_level(50)
 
+# from rushlight.config import config
 from rushlight.emission_models import uv, xrt, xray_bremsstrahlung
 from rushlight.utils import synth_tools as st
 from rushlight.utils.dcube import Dcube
