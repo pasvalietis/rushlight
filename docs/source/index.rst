@@ -33,7 +33,8 @@ Rushlight can be used to create synthetic observations and sunpy map objects com
 .. toctree::
    :maxdepth: 1
    :caption: Example notebooks:
-
+   
+   eg_create_dummy_vol
    eg_aia_stereo_fetch
    eg_aia_stereo_pair
    eg_clb_loop

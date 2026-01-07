@@ -86,7 +86,14 @@ class UVModel:
         aia_trm = np.load(trm_path, allow_pickle=True)
 
         channels = {'94': 0, '131': 1, '171': 2, '193': 3, '211': 4, '335': 5}
-        ch_ = channels.get(str(self.channel))
+
+        try:
+            ch_ = channels.get(str(int(self.channel.value)))
+        except:
+            try: 
+                ch_ = channels.get(str(int(self.channel)))
+            except:
+                raise ValueError('Channel should be integer value [94, 131, 171, 193, 211, 335]')
 
         aia_trm_interpf = interpolate.interp1d(
             aia_trm.item()['logt'],
