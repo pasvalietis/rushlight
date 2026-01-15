@@ -52,6 +52,8 @@ The SunPy [@SUNPY] package is the modus operandi by which the 2D observables are
 
 The Astropy [@ASTROPY1] [@ASTROPY2] [@ASTROPY3] package is used largely for its astropy.coordinates.SkyCoord module, which provides the flexible framework for calculating the relative positions of observables in physical space, as well as transformation to and from different reference frames (eg. Heliographic Stonyhurst, Heliocentric, Helioprojective). Additionally, the astropy.units module is used extensively to dynamically determine the resulting units of various physical calculations across ruslight's observable alignment procedure.
 
+The CoronalLoopBuilder [@CLB] package provides a convenient way for users to define a projection plane that passes through a particular point in space defined in the Heliographic Stonyhurst coordinate system. CoronalLoopBuilder is heavily used in the Jupyter Notebook example files provided with rushlight's documentation, allowing the user to make dynamic comparisons between their loop object, and their observable.
+
 # Acknowledgements
 Test
 
