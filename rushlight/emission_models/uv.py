@@ -4,6 +4,8 @@ from pathlib import Path
 from yt.data_objects.static_output import Dataset
 import math
 
+import rushlight
+
 from scipy import interpolate
 from astropy import constants as const
 from astropy import units as u
@@ -82,7 +84,10 @@ class UVModel:
         """
         # trm_path = config.INSTRUMENTS['SDO_AIA_TEMP_RESPONSE']
         # Use relative path within the repository
-        trm_path = '../instr/sdo_aia/aia_temp_response.npy'
+        package_path = Path(rushlight.__file__)
+        rlight_directory = package_path.parent
+        trm_path = rlight_directory / "instr/sdo_aia/aia_temp_response.npy" # '../instr/sdo_aia/aia_temp_response.npy'
+
         aia_trm = np.load(trm_path, allow_pickle=True)
 
         channels = {'94': 0, '131': 1, '171': 2, '193': 3, '211': 4, '335': 5}
