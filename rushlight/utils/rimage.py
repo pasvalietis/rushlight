@@ -31,42 +31,73 @@ class ReferenceImage(ABC, MapFactory):
             import datetime
 
             # Create an empty dataset (entire solar disk)
-            resolution = 2500
+            self.resolution = kwargs.get('resolution', 96)
 
-            data = np.random.randint(0, 1e6, size=(resolution, resolution))
+            self.data = np.random.randint(0, 1e6, size=(self.resolution,
+                                                   self.resolution))
 
             obstime = datetime.datetime(2000, 1, 1, 0, 0, 0)
             # Define a reference coordinate and create a header using sunpy.map.make_fitswcs_header
-            skycoord = SkyCoord(0*u.arcsec, 0*u.arcsec, obstime=obstime,
+            skycoord_ = SkyCoord(0*u.arcsec, 0*u.arcsec, obstime=obstime,
                                 observer='earth', frame=frames.Helioprojective)
+
             # Scale set to the following for solar limb to be in the field of view
-            # scale = 220 # Changes bounds of the resulting helioprojective view
-            scale = kwargs.get('scale', 1)
+            # Changes bounds of the resulting helioprojective view
+            scale = kwargs.get('scale', 21)  # 21 arcsec/pix
             
-            instr = kwargs.get('instrument', 'DefaultInstrument')
-            self.instrument = instr
+            instr = kwargs.get('instr', 'DefaultInstrument')
+            self.instr_default = 'DefaultInstrument'
+
+            self.instrument = instr.lower()
+
+            self.reference_pixel = ((self.resolution / 2.),
+                                    (self.resolution / 2.)) * u.pix
 
             if 'channel' in kwargs:
-                self.wavelength = kwargs['channel']
+                self.channel = kwargs['channel']
             if 'wavelength' in kwargs:
                 self.wavelength = kwargs['wavelength']
 
 
-            header = make_fitswcs_header(data,
-                                         skycoord,
-                                         #reference_pixel=self.reference_pixel,
-                                         scale=[scale, scale]*u.arcsec/u.pixel,
-                                         telescope= kwargs.get('telescope', instr),
-                                         detector= kwargs.get('detector', instr),
-                                         instrument=kwargs.get('instrument', instr),
-                                         observatory=kwargs.get('observatory', instr),
-                                         wavelength= kwargs.get('wavelength', self.wavelength),
-                                         exposure=kwargs.get('exposure', None),
-                                         unit=kwargs.get('unit', None))
+            if self.instrument == 'xrt':
+
+                header = make_fitswcs_header(self.data,
+                                             coordinate=skycoord_,
+                                             reference_pixel=self.reference_pixel,
+                                             scale=[scale, scale]*u.arcsec/u.pixel,
+                                             telescope=kwargs.get('telescope', self.instr_default),
+                                             detector=kwargs.get('detector', self.instr_default),
+                                             instrument=kwargs.get('instrument', self.instrument),
+                                             observatory=kwargs.get('observatory', self.instr_default),
+                                             wavelength=kwargs.get('wavelength', None),
+                                             exposure=kwargs.get('exposure', None),
+                                             unit=kwargs.get('unit', None),
+                                             )
+
+                header['EC_FW1_'] = 'Open'
+                header['EC_FW2_'] = self.channel.replace("-", "_")  # e.g. 'Al_thick'
+
+                default_kwargs = {'data': self.data, 'header': header}
+
+                m = sunpy.map.Map(self.data, header)
+
+            else:
+                self.wavelength = self.channel  # Assuming channel contains EUV wavelength argument
+                header = make_fitswcs_header(self.data,
+                                             coordinate=skycoord_,
+                                             reference_pixel=self.reference_pixel,
+                                             scale=[scale, scale]*u.arcsec/u.pixel,
+                                             telescope= kwargs.get('telescope', self.instr_default),
+                                             detector= kwargs.get('detector', self.instr_default),
+                                             instrument=kwargs.get('instrument', instr),
+                                             observatory=kwargs.get('observatory', self.instr_default),
+                                             wavelength= kwargs.get('wavelength', self.wavelength),
+                                             exposure=kwargs.get('exposure', None),
+                                             unit=kwargs.get('unit', None))
 
 
-            default_kwargs = {'data': data, 'header': header}
-            m = sunpy.map.Map(data, header)
+                default_kwargs = {'data': self.data, 'header': header}
+                m = sunpy.map.Map(self.data, header)
 
         self.map = m
 
@@ -77,7 +108,7 @@ class XRTReferenceImage(ReferenceImage):
     """
 
     def __init__(self, ref_img_path: str = None):
-        super().__init__(ref_img_path, instrument='Xrt')
+        super().__init__(ref_img_path, instrument='xrt')
 
 @dataclass
 class AIAReferenceImage(ReferenceImage):
