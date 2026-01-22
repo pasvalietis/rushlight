@@ -1,8 +1,6 @@
 import numpy as np
 
-from rushlight.config import config
 import sys
-sys.path.insert(1, config.CLB_PATH)
 from CoronalLoopBuilder.builder import semi_circle_loop # type: ignore
 
 import pickle
