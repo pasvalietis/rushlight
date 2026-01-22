@@ -1,7 +1,8 @@
 import numpy as np
 
 import sys
-from CoronalLoopBuilder.builder import semi_circle_loop # type: ignore
+# UPDATE LOADING CLB
+# from CoronalLoopBuilder.builder import semi_circle_loop # type: ignore
 
 import pickle
 import sunpy
@@ -179,11 +180,12 @@ def get_loop_coords(loop_params):
     az = loop_params.get("az", 0 * u.deg)
     samples_num = loop_params.get("samples_num", 100)
 
-    try:
-        loop_coords = semi_circle_loop(radius, 0, 0, False, height, theta0, phi0, el, az, samples_num)[0].cartesian
-    except:
-        print("Error handled: Your CLB does not support semicircles \n")
-        loop_coords = semi_circle_loop(radius, height, theta0, phi0, el, az, samples_num)[0].cartesian
+    # TODO: Update loading CLB
+    # try:
+    #     loop_coords = semi_circle_loop(radius, 0, 0, False, height, theta0, phi0, el, az, samples_num)[0].cartesian
+    # except:
+    #     print("Error handled: Your CLB does not support semicircles \n")
+    #     loop_coords = semi_circle_loop(radius, height, theta0, phi0, el, az, samples_num)[0].cartesian
 
     return loop_coords
 
