@@ -1,5 +1,9 @@
 import yt
 import numpy as np
+from pathlib import Path
+
+import rushlight
+
 from yt.data_objects.static_output import Dataset
 
 from scipy import interpolate
@@ -77,9 +81,12 @@ class XRTModel:
         numpy.ndarray
             An array containing the calculated X-ray intensity for each cell in the chunk.
         """
-        # trm_path = config.INSTRUMENTS['HINODE_XRT_TEMP_RESPONSE']
-        # Use relative path within the repository
-        trm_path = '../instr/hinode_xrt/xrt_temp_response.npy'
+
+        package_path = Path(rushlight.__file__)
+        rlight_directory = package_path.parent
+
+        trm_path = rlight_directory / "instr/hinode_xrt/xrt_temp_response.npy"
+
         xrt_trm = np.load(trm_path, allow_pickle=True)
 
         channel = self.channel
