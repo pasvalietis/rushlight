@@ -82,8 +82,7 @@ class UVModel:
         numpy.ndarray
             An array containing the calculated UV intensity for each cell in the chunk.
         """
-        # trm_path = config.INSTRUMENTS['SDO_AIA_TEMP_RESPONSE']
-        # Use relative path within the repository
+
         package_path = Path(rushlight.__file__)
         rlight_directory = package_path.parent
         trm_path = rlight_directory / "instr/sdo_aia/aia_temp_response.npy" # '../instr/sdo_aia/aia_temp_response.npy'
