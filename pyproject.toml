@@ -6,7 +6,7 @@ build-backend = 'setuptools.build_meta'
 [project]
 name = "rushlight"
 description = "Package to compute synthetic images from numerical simulation outputs of heliophysical processes"
-readme = "README.org"
+readme = "README.md"
 authors = [
     { name = "Ivan Oparin", email = "ivandmit@gmail.com" },
     { name = "Sabastian Fernandes", email = "sabastianf531@gmail.com" }

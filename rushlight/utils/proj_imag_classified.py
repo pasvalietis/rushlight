@@ -34,12 +34,10 @@ import textwrap
 import os
 from unyt import unyt_array
 
-from dataclasses import dataclass
 from abc import ABC
 
 # TODO - create a method summary here
 
-@dataclass
 class SyntheticImage(ABC):
 
     """
@@ -116,6 +114,10 @@ class SyntheticImage(ABC):
             # Establish aliases for lat, lon coordinates
             self.lat = self.theta0
             self.lon = self.phi0
+        else:
+            print('No loop vectors provided, setting lon, lat to default')
+            self.lat = kwargs.get('lat', 0) * u.deg
+            self.lon = kwargs.get('lon', 0) * u.deg
 
         # The coordinate to which the projection will be aligned
         self.mpt_obstime = kwargs.get('mpt_obstime', self.obstime)
@@ -285,6 +287,8 @@ class SyntheticImage(ABC):
         elif self.instr in ['xrt']:
             imaging_model = xrt.XRTModel("temperature", "number_density", self.channel)
             cmap['xrt'] = cm.cmlist[f"hinodexrt"]
+        else:
+            raise ValueError('Instrument and emission fields are undefined')
 
 
         imaging_model.make_intensity_fields(self.data)
@@ -338,11 +342,12 @@ class SyntheticImage(ABC):
         self.zoom, self.image_shift = (None, None)
 
         # Run diff_roll only if reference image is actually provided
-        if not self.ref_img.instrument == 'DefaultInstrument':
-            self.diff_roll(**kwargs)
-
-        if self.zoom and not (self.zoom == 1):
-            self.image = self.zoom_out(self.image, self.zoom)
+        #embed()
+        # if not self.ref_img.instrument == 'DefaultInstrument':
+        #     self.diff_roll(**kwargs)
+        # 
+        # if self.zoom and not (self.zoom == 1):
+        #     self.image = self.zoom_out(self.image, self.zoom)
 
         # Fill background
         self.bkg_fill = kwargs.get('bkg_fill', None)
@@ -365,8 +370,11 @@ class SyntheticImage(ABC):
         synth_ludw = synth_lu * synth_dw            # Length of domain (should be km)
         synth_ludw = synth_ludw.to('km')            # Ensure length in km
 
-        synth_as = synth_ludw / (737)           # Assumption 737 km/as for solar feature
-        #TODO: Use observer distance to convert arcseconds to kilonmeters
+        angle_comp = 1 * u.arcsec
+        asec_km = angle_comp.to(u.km, equivalencies=solar_angle_equivalency(observer=self.ref_img.observer_coordinate))
+
+        synth_as = synth_ludw / (asec_km)           # Assumption 737 km/as for solar feature
+        #TODO: Use observer distance to convert arcseconds to kilometers
 
         factor = float(synth_as / img_as)
 
@@ -430,32 +438,55 @@ class SyntheticImage(ABC):
         if self.poisson:
             self.image = 0.5*np.max(self.image) * random_noise(self.image / (0.5*np.max(self.image)), mode='poisson')
         
-        ref_pix = u.Quantity((self.reference_pixel[0].value - self.image_shift[0],
-                              self.reference_pixel[1].value - self.image_shift[1],
-                              ))*u.pix
+        ref_pix = u.Quantity((self.reference_pixel[0].value, # - self.image_shift[0],
+                              self.reference_pixel[1].value) # - self.image_shift[1],
+                              ) * u.pix
 
-        # Creating header using sunpy
-        header = make_fitswcs_header(self.image,
-                                     coordinate=self.reference_coord,
-                                     reference_pixel=ref_pix,
-                                     scale=self.scale,
-                                     telescope=self.telescope,
-                                     detector=self.detector,
-                                     instrument=self.instrument,
-                                     observatory=self.observatory,
-                                     wavelength=self.wavelength,
-                                     exposure=self.exposure,
-                                     unit=self.unit)
+        if self.instr.lower() == 'xrt':
+            header = make_fitswcs_header(self.image,
+                                         coordinate=self.reference_coord,
+                                         reference_pixel=ref_pix,
+                                         scale=self.scale,
+                                         telescope=self.telescope,
+                                         detector=self.detector,
+                                         instrument=self.instrument,
+                                         observatory=self.observatory,
+                                         wavelength=self.wavelength,
+                                         exposure=self.exposure,
+                                         unit=self.unit,
+                                         )
+            # Add support only for one filter in the filter wheel
+            header['EC_FW1_'] = 'Open'
+            header['EC_FW2_'] = self.channel.replace("-", "_")
 
-        self.synth_map = sunpy.map.Map(self.image, header)
+            s_map = sunpy.map.Map(self.image, header)
+            self.synth_map = sunpy.map.sources.XRTMap(s_map.data, s_map.fits_header)
 
-        self.synth_map.plot_settings['norm'] = colors.LogNorm(0.1, self.ref_img.max())
-        self.synth_map.plot_settings['cmap'] = self.plot_settings['cmap']
+            self.synth_map.plot_settings['norm'] = colors.LogNorm(self.ref_img.min(), self.ref_img.max())
+            self.synth_map.plot_settings['cmap'] = self.plot_settings['cmap']
+
+        else:
+            header = make_fitswcs_header(self.image,
+                                         coordinate=self.reference_coord,
+                                         reference_pixel=ref_pix,
+                                         scale=self.scale,
+                                         telescope=self.telescope,
+                                         detector=self.detector,
+                                         instrument=self.instrument,
+                                         observatory=self.observatory,
+                                         wavelength=self.wavelength,
+                                         exposure=self.exposure,
+                                         unit=self.unit)
+
+            self.synth_map = sunpy.map.Map(self.image, header)
+
+            self.synth_map.plot_settings['norm'] = colors.LogNorm(self.ref_img.min(), self.ref_img.max())
+            self.synth_map.plot_settings['cmap'] = self.plot_settings['cmap']
 
         return self.synth_map
 
     def project_point(self, y_points):
-        """Identify pixels where three dimensional points from the original dataset are projected
+        """Identify pixels where three-dimensional points from the original dataset are projected
         on the image plane
 
         :param dataset: Dataset containing 3d coordinates for ypoints, defaults to None
@@ -640,7 +671,6 @@ class SyntheticImage(ABC):
         """).format(inst=self.instr,
                     wave=self.channel)
 
-@dataclass
 class SyntheticFilterImage(SyntheticImage):
     """ For UV and Soft Xrays """
     def __init__(self, dataset=None, smap_path: str=None, smap=None, **kwargs):
@@ -695,17 +725,17 @@ class SyntheticFilterImage(SyntheticImage):
         if self.plot_settings:
             self.plot_settings['cmap'] = cmap[self.instr]
 
-@dataclass
+
 class SyntheticEnergyRangeImage(SyntheticImage):
     """ For Non-thermal emission, like PyXsim """
     pass
 
-@dataclass
+
 class SyntheticInterferometricImage(SyntheticImage):
     """ For Radio images (CASA)"""
     pass
 
-@dataclass
+
 class SyntheticBandImage():
     """
     Class to store synthetic X-ray images generated in a given *energy band*, such as ones from RHESSI.

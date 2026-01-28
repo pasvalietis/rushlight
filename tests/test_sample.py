@@ -1,8 +1,8 @@
 import pytest
 
 
-def test_that_intentionally_fails():
-    assert 6 * 9 == 42
+# def test_that_intentionally_fails():
+#     assert 6 * 9 == 42
 
 
 def test_that_intentionally_passes():

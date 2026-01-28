@@ -1,16 +1,18 @@
 from abc import ABC
 from dataclasses import dataclass
 
+import pathlib
+
 import numpy as np
 
 import yt
 from yt.data_objects.selection_objects.region import YTRegion
 yt.set_log_level(50)
 
-@dataclass
+
 class Dcube(ABC):
 
-    def __init__(self, dataset = None):
+    def __init__(self, dataset = None, output_file=None, **kwargs):
 
         if not dataset:
             # Default values for bbox dimensions (code units)
@@ -24,7 +26,7 @@ class Dcube(ABC):
 
             # Define the range for the logarithmic distribution.
             mi = 4
-            ma = 8
+            ma = 5
 
             # Create a logarithmically spaced array based on the first dimension in 'dims'.
             arr_range = np.logspace(mi, ma, dims[0])
@@ -45,7 +47,7 @@ class Dcube(ABC):
             ch1 = int(dims[1] / fract)
             ch2 = int(dims[2] / fract)
 
-            max_val = arr_range.max()*1000
+            max_val = arr_range.max() * 1000
 
             # Cut out some chunks from the array to create a more visually distinctive dataset.
             # These chunks are set to the maximum value in `arr_range`.
@@ -104,7 +106,7 @@ class Dcube(ABC):
             # %%
             # Create a yt object from the NumPy array.
 
-            T_arr = arr * 1e-4        # Assign the generated array to represent temperature.
+            T_arr = arr        # Assign the generated array to represent temperature.
             D_arr = np.ones_like(arr) * 1.e-15    # Create a density array by scaling the temperature array.
 
             # Define the data dictionary with field names, arrays, and their units.
@@ -125,9 +127,9 @@ class Dcube(ABC):
             # Load the uniform grid data into a yt dataset object.
             # The unit length (1.5e10 cm = 1.5e5 km) is specified.
             ds = yt.load_uniform_grid(
-                data,
-                arr.shape,
-                1.5e10,  # 1.5e10 cm = 1.5e5 km (unit length)
+                data=data,
+                domain_dimensions=arr.shape,
+                length_unit=1.5e10,  # 1.5e10 cm = 1.5e5 km (unit length)
                 bbox=bbox,
             )
 
@@ -138,14 +140,21 @@ class Dcube(ABC):
                 dims=ds.domain_dimensions,
             )
 
+            fname = "test.h5"
+
             # Save the covering grid as an HDF5 dataset.
             # The `fields` argument specifies the fields to be saved.
-            fname = "test.h5"
-            fn = cg.save_as_dataset(filename=fname, fields=[("gas", "temperature"), ("stream", "density")])
-            print('Saved dummy dataset to: ' + fname)
+            if output_file:
+                self.output_file_path = pathlib.Path(output_file)
+                fn = cg.save_as_dataset(filename=output_file, fields=[("gas", "temperature"), ("stream", "density")])
+                dataset = yt.load(self.output_file_path)
+            else:
+                # Fallback to Current Working Directory
+                self.output_dir = pathlib.Path.cwd()
+                fn = cg.save_as_dataset(filename=self.output_dir / fname,
+                                        fields=[("gas", "temperature"), ("stream", "density")])
+                dataset = yt.load("test.h5")
 
-            dataset = yt.load("test.h5")
-        
         if isinstance(dataset, YTRegion):
             self.box = dataset
             self.data = self.box.ds
@@ -160,5 +169,5 @@ class Dcube(ABC):
                     self.data = dataset
                     self.box = self.data
                 except:
-                    raise("Datacube loading failed - please check for available fields: box")
+                    raise("Datacube loading failed -- please check for available fields: box")
             self.domain_width = np.abs(self.data.domain_right_edge - self.data.domain_left_edge).in_units('cm').to_astropy()
