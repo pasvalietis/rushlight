@@ -117,6 +117,7 @@ class SyntheticImage(ABC):
             self.lon = self.phi0
 
         # The coordinate to which the projection will be aligned
+        # BUG - Observer should not be automatically set to "Earth"!
         self.mpt_obstime = kwargs.get('mpt_obstime', self.obstime)
         self.mpt = SkyCoord(lon=self.lon, lat=self.lat, radius=const.R_sun,
                     frame='heliographic_stonyhurst',
