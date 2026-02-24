@@ -1,7 +1,7 @@
-color_tables
+acquire\_data module
 ====================
 
-.. automodule:: rushlight.visualization.colormaps.color_tables
+.. automodule:: acquire_data
    :members:
    :undoc-members:
    :show-inheritance:
