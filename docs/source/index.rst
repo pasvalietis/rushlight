@@ -6,39 +6,36 @@
 Welcome to Rushlight's documentation!
 =====================================
 
-Rushlight is a tool to enhance comparisons between observations of high-energy solar events and 3D MHD models of such events.
+Rushlight is a Python software module for solar physicists that generates synthetic observations from numerical simulation results.
+It provides functionality to produce filter-band extreme ultraviolet (EUV) and soft X-ray images from user-defined line of sight.
+Currently supported observatories include SDO (AIA instrument `[Lemen et al., 2010] <https://doi.org/10.1007/s11207-011-9776-8>`_) and Hinode (XRT instrument `[Golub et al., 2007] <https://doi.org/10.1007/978-0-387-88739-5_5>`_).
 
-.. image:: images/obs_synth.png
-   :width: 400
-   :align: center
 
-The package leverages the functionalities of Sunpy_, CoronalLoopBuilder_, and Yt_ in order to perform projections and automatic alignment of model features to the observation site.
-
-.. _Sunpy: https://sunpy.org/
-.. _CoronalLoopBuilder: https://github.com/sageyu123/CoronalLoopBuilder
-.. _Yt: https://yt-project.org/
-
-Rushlight can be used to create synthetic observations and sunpy map objects compatible with the rest of the sunpy suite of functionality.
+..
+   Rushlight can be used to create synthetic observations and sunpy map objects compatible with the rest of the sunpy suite of functionality.
 
 .. toctree::
+   :hidden:
    :maxdepth: 2
-   :caption: Modules:
+   :caption: User Guide:
 
-   proj_imag_classified
-   color_tables
-   uv
-   xrt
-   xray_bremsstrahlung
+   install
+   about
 
 .. toctree::
-   :maxdepth: 1
+   :hidden:
+   :maxdepth: 2
    :caption: Example notebooks:
-   
-   eg_create_dummy_vol
-   eg_aia_stereo_fetch
-   eg_aia_stereo_pair
-   eg_clb_loop
-   eg_synth_proj
+
+   example_notebooks/eg_synth_proj
+
+.. toctree::
+   :hidden:
+   :maxdepth: 1
+   :caption: API Reference:
+
+   rushlight.utils
+   rushlight.emission_models
 
 .. Check out the :doc:`usage` section for further information, including how to :ref:`install <installation>` the project.
 
