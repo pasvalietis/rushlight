@@ -19,7 +19,6 @@ from CoronalLoopBuilder.builder import CoronalLoopBuilder # type: ignore
 from rushlight.utils.proj_imag_classified import SyntheticFilterImage as sfi
 # from rushlight.utils.proj_imag_classified import XRTReferenceImage
 from rushlight.utils.rimage import XRTReferenceImage
-from rushlight.config import config
 
 import itertools
 import numpy as np

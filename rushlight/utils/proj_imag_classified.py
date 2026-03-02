@@ -10,8 +10,7 @@ import yt
 from yt.utilities.orientation import Orientation
 yt.set_log_level(50)
 
-# from rushlight.config import config
-from rushlight.emission_models import uv, xrt, xray_bremsstrahlung
+from rushlight.emission_models import uv, xrt
 from rushlight.utils import synth_tools as st
 from rushlight.utils.dcube import Dcube
 
@@ -455,9 +454,22 @@ class SyntheticImage(ABC):
                                          exposure=self.exposure,
                                          unit=self.unit,
                                          )
-            # Add support only for one filter in the filter wheel
-            header['EC_FW1_'] = 'Open'
-            header['EC_FW2_'] = self.channel.replace("-", "_")
+
+            # Determine filter wheel
+            filter_wheel1_measurements = ["Al_med", "Al_poly", "Be_med",
+                                  "Be_thin", "C_poly", "Open"]
+            filter_wheel2_measurements = ["Open", "Al_mesh", "Al_thick",
+                                        "Be_thick", "Gband", "Ti_poly"]
+
+            if self.channel.replace("-", "_") in filter_wheel1_measurements:
+                # Add support only for one filter in the filter wheel
+                header['EC_FW1_'] = self.channel.replace("-", "_")
+                header['EC_FW2_'] = 'Open'
+            elif self.channel.replace("-", "_") in filter_wheel2_measurements:
+                header['EC_FW1_'] = 'Open'
+                header['EC_FW2_'] = self.channel.replace("-", "_")
+
+
 
             s_map = sunpy.map.Map(self.image, header)
             self.synth_map = sunpy.map.sources.XRTMap(s_map.data, s_map.fits_header)

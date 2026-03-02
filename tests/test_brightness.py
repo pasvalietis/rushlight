@@ -74,7 +74,11 @@ TEST_DICT = gen_test_synth_img()
     ids=list(TEST_DICT.keys()), # The names Pytest will print in the console!
 )
 def test_imag_face_on(args, dataset_path):
-    """Test generation of synthetic images for all supported instruments/filters"""
+    """
+    Test generation of synthetic images for all supported instruments/filters
+    :param args: instrument and filter string
+    :param dataset_path: path to the standard dataset from the hdf file
+    """
     ref_file = get_test_file_path()
     instr, channel, theta_str = dataset_path.split('/')
     theta = float(theta_str)

@@ -1,11 +1,10 @@
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here.
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-sys.path.insert(0, '/home/gabriel/rad_transfer')
-sys.path.insert(0, '/home/gabriel/rad_transfer/rushlight/user_notebooks')
+sys.path.insert(0, os.path.abspath('../../'))
 
 # Configuration file for the Sphinx documentation builder.
 #
@@ -30,7 +29,7 @@ extensions = [
     'nbsphinx',
     'sphinx_rtd_theme',
 ]
-
+nbsphinx_execute = 'never'
 templates_path = ['_templates']
 exclude_patterns = []
 

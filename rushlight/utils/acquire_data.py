@@ -2,7 +2,6 @@ from sunpy.net import Fido
 from sunpy.net import attrs as a
 import astropy.units as u
 from astropy.time import Time
-from rushlight.config import config
 
 '''
 This script provides functionality to download FITS data and apply calibrations to the images
@@ -26,8 +25,6 @@ def get_sdo_aia_data(start_time=Time('2011-03-07T18:06:04', scale='utc', format=
     :return:
     """
 
-    if jsoc_email is None:
-        jsoc_email = config['JSOC_EMAIL']
 
     wavelength = channel*u.angstrom
     query = Fido.search(
