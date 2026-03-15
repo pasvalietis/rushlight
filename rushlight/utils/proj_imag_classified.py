@@ -92,6 +92,9 @@ class SyntheticImage(ABC):
 
         self.obstime = kwargs.get('obstime', self.ref_img.reference_coordinate.obstime)  # Can manually specify synthetic box observation time
 
+        # vvvvvvvvvvvvvvvvvvvvvvvvvvvv
+        # vvvvvvvvvvvvvvvvvvvvvvvvvvvv DEPRECIATION - Loop Params, Norm Calculation
+
         # Determine whether the user has chosen to define their projection plane via
         # Vector array or CLB loop parameters
         self.vector_arr = kwargs.get('vector_arr', None)
@@ -139,6 +142,10 @@ class SyntheticImage(ABC):
             self.normvector, self.northvector, self.ifpd = st.calc_vect(self.ref_img, vector_arr=self.vector_arr, 
                                                                         loop_coords=self.loop_coords, default=False,
                                                                         obsframe=obsframe)
+            
+        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ DEPRECIATION
+        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
         # Group the normal and north vectors in self.view_settings
         self.view_settings = {'normal_vector': self.normvector,
                               'north_vector': self.northvector}
