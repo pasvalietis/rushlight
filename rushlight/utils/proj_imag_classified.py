@@ -122,7 +122,7 @@ class SyntheticImage(ABC):
         self.mpt_obstime = kwargs.get('mpt_obstime', self.obstime)
         self.mpt = SkyCoord(lon=self.lon, lat=self.lat, radius=const.R_sun,
                     frame='heliographic_stonyhurst',
-                    observer='earth', obstime=self.mpt_obstime).transform_to(frame='helioprojective')
+                    observer=self.ref_img.observer_coordinate, obstime=self.mpt_obstime).transform_to(frame='helioprojective')
 
         if loop_params:
             # Calculation of the CLB loop properties, including the normvector and northvector
