@@ -25,7 +25,6 @@ from sunpy.coordinates.sun import _radius_from_angular_radius
 from sunpy.visualization import colormaps as cm
 
 from astropy.coordinates import SkyCoord
-from astropy.time import Time, TimeDelta
 import astropy.constants as const
 
 import pickle
@@ -340,14 +339,6 @@ class SyntheticImage(ABC):
         # of the ref_image.
         self.zoom, self.image_shift = (None, None)
 
-        # Run diff_roll only if reference image is actually provided
-        #embed()
-        # if not self.ref_img.instrument == 'DefaultInstrument':
-        #     self.diff_roll(**kwargs)
-        # 
-        # if self.zoom and not (self.zoom == 1):
-        #     self.image = self.zoom_out(self.image, self.zoom)
-
         # Fill background
         self.bkg_fill = kwargs.get('bkg_fill', None)
         if self.bkg_fill: self.image[self.image <= 0] = self.bkg_fill
@@ -547,7 +538,6 @@ class SyntheticImage(ABC):
 
         return map_ypoints_coords
 
-
     def update_los(self, norm: unyt_array=None, north: unyt_array=None, **kwargs):
         """Updates the normal and north vectors for the view settings and regenerates the image.
 
@@ -574,98 +564,6 @@ class SyntheticImage(ABC):
             self.make_synthetic_map(**kwargs)  # Recreate the synthetic map
 
         return norm, north  # Return the updated vectors
-
-    def save_synthobj(self):
-        """Saves relevant synthetic object parameters into a dictionary.
-
-        This method compiles key information about the synthetic object, including FITS header data
-        from the reference image, loop parameters, and view vectors, into a dictionary.
-        This dictionary is structured for easy identification using a key composed of the
-        telescope and observation date.
-
-        :returns: A dictionary containing the synthetic object's data,
-            keyed by a string combining the telescope and observation date.
-        :rtype: dict
-        """
-        event_dict = {}  # Initialize an empty dictionary to store event-related data
-        event_dict['header'] = self.ref_img.fits_header  # Store the FITS header from the reference image
-        event_dict['loop_params'] = self.dims  # Store the loop parameters (dimensions)
-        event_dict['norm_vector'] = self.normvector  # Store the normal vector
-        event_dict['north_vector'] = self.northvector  # Store the north vector
-
-        telescope = event_dict['header']['TELESCOP']  # Extract the telescope name from the FITS header
-        dateobs = event_dict['header']['DATE-OBS']  # Extract the observation date from the FITS header
-        event_key = f'{telescope}|{dateobs}'  # Create a unique key for the event
-        synthobj = {event_key: event_dict}  # Create the final dictionary with the event key and data
-
-        return synthobj  # Return the structured synthetic object dictionary
-
-    def append_synthobj(self, target=None):
-        """Appends the current synthetic object's data to an existing dictionary or a new one,
-        then saves it to a file if a file path is provided or creates a new file.
-
-        :param target: The target to append to. Can be a file path (str) to a pickled dictionary,
-            an existing dictionary (dir), or None to start with an empty dictionary.
-        :type target: str or dict, optional
-        :returns: A tuple containing the updated synthetic object dictionary and the target file path.
-        :rtype: tuple[dict, str]
-        :raises TypeError: If `target` is not a string, a dictionary, or None.
-        """
-
-        synthobj = {}  # Initialize an empty dictionary for the synthetic object data
-
-        # Load existing data if a target is provided
-        if target:
-            if isinstance(target, str):
-                # If target is a string, assume it's a file path and load the pickled dictionary
-                try:
-                    with open(target, 'rb') as f:
-                        synthobj = pickle.load(f)
-                except FileNotFoundError:
-                    print(f"File not found: {target}. Creating a new dictionary.")
-                    synthobj = {}
-                except Exception as e:
-                    print(f"Error loading pickle file: {e}. Creating an empty dictionary.")
-                    synthobj = {}
-            elif isinstance(target, dict):
-                # If target is already a dictionary, use it directly
-                synthobj = target
-            else:
-                # Handle invalid target types
-                print('Invalid target type! Creating an empty dictionary.')
-                synthobj = {}
-        else:
-            # If no target is provided, start with an empty dictionary
-            print('No target provided! Creating an empty dictionary.')
-            synthobj = {}
-
-        # Get the current synthetic object's information
-        this_synthobj = self.save_synthobj()
-        # Extract the key and value from the current synthetic object's data
-        key = list(this_synthobj.keys())[0]
-        value = this_synthobj[key]
-        # Append or update the synthetic object dictionary with the current object's data
-        synthobj[key] = value
-
-        # Save the updated synthetic object dictionary
-        if isinstance(target, str):
-            # If the original target was a string (file path), save back to that file
-            with open(target, 'wb') as file:
-                pickle.dump(synthobj, file)
-        else:
-            # If no file path was provided initially, create a new one in 'loop_parameters/'
-            now = datetime.datetime.now()  # Get current timestamp
-            loop_dir = './loop_parameters/'  # Define the directory for saving
-            if not os.path.exists(loop_dir):
-                os.makedirs(loop_dir)  # Create the directory if it doesn't exist
-
-            # Generate a unique filename using the timestamp
-            fname = f'{now}.pkl'.replace(' ', '_').replace(':', '-').replace('.', '_')
-            target = f'{loop_dir}{fname}'  # Construct the full file path
-            with open(target, 'wb') as file:
-                pickle.dump(synthobj, file)
-
-        return synthobj, target  # Return the updated dictionary and the final target path
 
     def __str__(self):
         return f"{self._text_summary()}\n{self.data.__repr__()}"
@@ -736,71 +634,3 @@ class SyntheticFilterImage(SyntheticImage):
 
         if self.plot_settings:
             self.plot_settings['cmap'] = cmap[self.instr]
-
-
-class SyntheticEnergyRangeImage(SyntheticImage):
-    """ For Non-thermal emission, like PyXsim """
-    pass
-
-
-class SyntheticInterferometricImage(SyntheticImage):
-    """ For Radio images (CASA)"""
-    pass
-
-
-class SyntheticBandImage():
-    """
-    Class to store synthetic X-ray images generated in a given *energy band*, such as ones from RHESSI.
-    """
-
-    def __init__(self, dataset, emin, emax, nbins, emission_model, hint=None, units_override=None,
-                 view_settings=None, plot_settings=None, **kwargs):
-
-        """
-        :param dataset: Path of the downsampled dataset or a dataset itself
-        :param emin: low energy limit in keV
-        :param emax: high energy limit in keV
-        :param nbins: number of energy bins to compute synthetic spectra and images
-        """
-
-        self.emin = emin
-        self.emax = emax
-        self.nbins = nbins
-        self.emission_model = emission_model  # Thermal / Non-thermal
-
-        self.box = None  # Importing a region within an initial dataset
-
-        if isinstance(dataset, str):
-            self.data = yt.load(dataset, units_override=units_override, hint=hint)
-        elif isinstance(dataset, yt.data_objects.static_output.Dataset):
-            self.data = dataset
-        elif isinstance(dataset, yt.data_objects.selection_objects.region.YTRegion):
-            self.data = dataset.ds
-            self.box = dataset
-
-        self.obs = kwargs.get('obs', "DefaultInstrument")  # Name of the observatory
-        self.instr = kwargs.get('instr', 'RHESSI')
-        self.binscale = kwargs.get('binscale', 'linear')
-        self.obstime = kwargs.get('obstime', '2017-09-10')  # Observation time
-
-        self.view_settings = {'normal_vector': (0.0, 0.0, 1.0),  # pass vectors as mutable arguments
-                              'north_vector': (-0.7, -0.3, 0.0)}
-        self.imag_field = None
-        self.image = None
-
-        if self.box:
-            self.domain_width = np.abs(self.box.right_edge - self.box.left_edge).in_units('cm').to_astropy()
-        else:
-            self.domain_width = self.data.domain_width.in_units("cm").to_astropy()  # convert unyt to astropy.units
-
-    def make_band_image_field(self, **kwargs):
-
-        cmap = {}
-        imaging_model = None
-
-        if self.emission_model == 'Thermal':
-            imaging_model = xray_bremsstrahlung.ThermalBremsstrahlungModel
-
-        imaging_model.make_intensity_fields(self.data)
-        field = 'xray_' + str(self.emin) + '_' + str(self.emax) + '_keV_band'
-        self.imag_field = field
