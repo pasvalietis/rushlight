@@ -151,7 +151,8 @@ class SyntheticImage(ABC):
                               'north_vector': self.northvector}
 
         # Aesthetic settings for the creation of the synthetic image
-        self.plot_settings = {'resolution': self.ref_img.data.shape[0],
+        self.plot_settings = {#'resolution': self.ref_img.data.shape[0],
+                              'resolution': 512,
                               'vmin': kwargs.get('vmin', 1e-15),
                               'vmax': kwargs.get('vmax', 1e6),
                               'norm': colors.LogNorm(kwargs.get('vmin', 1e-15), kwargs.get('vmax', 1e6)),
@@ -325,16 +326,30 @@ class SyntheticImage(ABC):
         except:
             center = self.box.center
 
+        # vvvvvvvvvvvvvvvvvvvvvvvvvvvv
+        # vvvvvvvvvvvvvvvvvvvvvvvvvvvv DEPRECIATION
+
+        # prji = yt.off_axis_projection(
+        #     self.box,
+        #     center, # center position in code units
+        #     normal_vector=self.view_settings['normal_vector'],  # normal vector (z axis)
+        #     width= kwargs.get('prjw', self.data.domain_width[0].value),  # width in code units
+        #     resolution=self.plot_settings['resolution'],  # image resolution
+        #     item=self.imag_field,  # respective field that is being projected
+        #     north_vector=self.view_settings['north_vector'],
+        #     )
+        
         prji = yt.off_axis_projection(
             self.box,
             center, # center position in code units
-            normal_vector=self.view_settings['normal_vector'],  # normal vector (z axis)
-            width= kwargs.get('prjw', self.data.domain_width[0].value),  # width in code units
-            resolution=self.plot_settings['resolution'],  # image resolution
-            item=self.imag_field,  # respective field that is being projected
-            north_vector=self.view_settings['north_vector'],
-            # depth = kwargs.get('depth', None)
+            self.view_settings['normal_vector'],  # normal vector (z axis)
+            width = kwargs.get('prjw', self.data.domain_width.max() * np.sqrt(2.)),  # width in code units
+            resolution = self.plot_settings['resolution'],  # image resolution
+            item = self.imag_field,  # respective field that is being projected
             )
+        
+        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 
         # NOTE: Confirm that this is not band-aid for incorrect norm vector
         # transpose synthetic image (swap axes for imshow)
