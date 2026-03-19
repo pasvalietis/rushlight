@@ -283,7 +283,7 @@ def get_loop_params(loop_params, **kwargs):
 
     return loop_params_dict
 
-def get_reference_image(smap_path: str = None, smap=None, **kwargs):
+def get_reference_image(smap=None, **kwargs):
     """Loads a reference SunPy Map object.
 
     :param smap_path: Path to a pickle file containing a SunPy Map object or a path to a

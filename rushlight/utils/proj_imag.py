@@ -1,4 +1,5 @@
 import os
+import itertools
 import numpy as np
 
 import yt
@@ -10,6 +11,7 @@ from astropy.coordinates import SkyCoord
 
 from rushlight.emission_models import uv, xrt
 from rushlight.utils.dcube import Dcube
+from rushlight.utils import synth_tools as st
 
 import sunpy.map
 from sunpy.coordinates import Heliocentric, HeliographicStonyhurst, HeliographicCarrington, Helioprojective, get_earth
@@ -17,18 +19,19 @@ from sunpy.coordinates import Heliocentric, HeliographicStonyhurst, Heliographic
 class SyntheticImage():
 
     def __init__(self,
-                 dataset=None,
-                 observer: str ='earth',
+                 dataset = None,
+                 observer = None,
                  origin = SkyCoord(HeliographicStonyhurst(0.*u.deg, 0.*u.deg)),
                  resolution = 512,
-                 smap_path: str = None,
                  smap=None,
                  **kwargs):
+
+        self.ref_image = st.get_reference_image(smap, **kwargs)
 
         self.instr = kwargs.get('instr', None).lower()  # keywords: 'aia' or 'xrt'
         self.obs = kwargs.get('obs', "DefaultInstrument")  # Name of the observatory
 
-        self.observer = observer
+        self.observer = observer if observer else self.ref_image.observer_coordinate
         self.obstime = kwargs.get('obstime', None)
 
         # Initialize the 3D MHD file to be used for synthetic image
@@ -51,16 +54,61 @@ class SyntheticImage():
         # Define synth image attribute
         self.resolution = resolution
         self.image = None
+    
+    def derive_bottom_corner_coords(self, ds):
+        """
+        Function that defines coordinates for all corners of the dataset bottom plane in code units or Mm,
+        and converts them to Heliocentric Cartesian frame to define 1 to 1 correspondence required for image registration
+        """
+        # Define the left and right edges of the dataset
+        left = ds.domain_left_edge.v 
+        right = ds.domain_right_edge.v
 
-    def calculate_los_vector(self, obs_location, origin_coord, **kwargs):
+        # Define the values for each axis
+        # We take both x limits, both y limits, but only the bottom z limit
+        x_bounds = [left[0], right[0]]
+        y_bounds = [left[1], right[1]]
+        z_bottom = [left[2]]
+
+        # x_bounds, y_bounds, z_bottom
+        bottom_corners = list(itertools.product(x_bounds, y_bounds, z_bottom))
+
+
+
+        bottom_coords_ds = ...
+        bottom_coords_helioprojective = ...
+
+        self.bottom_coords = {
+            'bottom_coords_ds_frame': bottom_coords_ds,
+            'bottom_coords_helioprojective': bottom_coords_helioprojective,
+        }
+
+    def calculate_los_vector(self, obs_location, origin_coord):
         """
         By default: load origin coord and define bottom plane aligned with cardinal directions (selected in helioprojective tangent plane)
         Optional: define bottom_coords manually; model will be aligned with these coordinates
         """
+        
+        # Get the box origin's Heliocentric Coordinates
+        frame_hcc = Heliocentric(observer=origin_coord, obstime=origin_coord.obstime)
+        origin_coord_hcc = origin_coord.transform_to(frame_hcc)
 
-        self.los_vector = ...
+        # Get the observer's Heliocentric Coordinates
+        observer_coord_hcc = obs_location.transform_to(origin_coord_hcc.frame)
 
-        return los_vector
+        # Define the line of sight vector as the difference between box origin and observer
+        los_vector = [
+                     observer_coord_hcc.x - origin_coord_hcc.x,
+                     observer_coord_hcc.y - origin_coord_hcc.y,
+                     observer_coord_hcc.z - origin_coord_hcc.z,
+                     ]
+        
+        los_vector = [comp.value for comp in los_vector] / np.linalg.norm([comp.value for comp in los_vector])
+        
+        # TODO: Properly account for observer's camera rotation
+        north_vector = [0, 1, 0]
+
+        return los_vector, north_vector
 
     def coord_projection(self, coord, dataset, orientation=None, **kwargs):
         """
@@ -115,20 +163,6 @@ class SyntheticFilterImage(SyntheticImage):
 
         self.proj_and_imag(**kwargs)
         self.make_synthetic_map(**kwargs)
-
-    def derive_bottom_corner_coords(self):
-        """
-        Function that defines coordinates for all corners of the dataset bottom plane in code units or Mm,
-        and converts them to Heliocentric Cartesian frame to define 1 to 1 correspondence required for image registration
-        """
-
-        bottom_coords_ds = ...
-        bottom_coords_helioprojective = ...
-
-        self.bottom_coords = {
-            'bottom_coords_ds_frame': bottom_coords_ds,
-            'bottom_coords_helioprojective': bottom_coords_helioprojective,
-        }
 
     def make_filter_image_field(self):
 
