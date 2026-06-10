@@ -15,6 +15,9 @@ from rushlight.utils import synth_tools as st
 
 import sunpy.map
 from sunpy.coordinates import Heliocentric, HeliographicStonyhurst, HeliographicCarrington, Helioprojective, get_earth
+from sunpy.visualization import colormaps as cm
+from sunpy.map.header_helper import make_fitswcs_header
+from sunpy.coordinates.sun import _radius_from_angular_radius
 
 class SyntheticImage():
 
@@ -26,11 +29,14 @@ class SyntheticImage():
                  smap=None,
                  **kwargs):
 
+        # Load the reference image via either a path or pre-loaded object
         self.ref_image = st.get_reference_image(smap, **kwargs)
 
+        # Retrieve Instrument data from kwargs
         self.instr = kwargs.get('instr', None).lower()  # keywords: 'aia' or 'xrt'
         self.obs = kwargs.get('obs', "DefaultInstrument")  # Name of the observatory
 
+        # Retrieve observer location data from reference image object
         self.observer = observer if observer else self.ref_image.observer_coordinate
         self.obstime = kwargs.get('obstime', None)
 
@@ -41,19 +47,39 @@ class SyntheticImage():
         self.domain_width = ds.domain_width
 
         # Define origin point for model to data comparisons
-
         self.origin = origin
 
+        # Determine norm and north vector for projection
         self.normvector, self.northvector = (None, None)
-
         if 'normvector' in kwargs and 'northvector' in kwargs:
+            # Manually define the vectors using kwargs
             self.normvector, self.northvector = kwargs['normvector'], kwargs['northvector']
         else:
+            # Calculate the vectors based on observer-origin vector
             self.normvector, self.northvector = self.calculate_los_vector(self.observer, self.origin)
 
         # Define synth image attribute
         self.resolution = resolution
         self.image = None
+        
+        # Project the image
+        
+    def proj_imag(self):
+        imag_field = str(self.instr) + '_filter_band'
+    
+        prji = yt.off_axis_projection(
+            self.data,
+            self.data.domain_center.value,  # center position in code units
+            normal_vector=self.normvector,  # normal vector (z axis)
+            width=np.sqrt(2.) * self.domain_width.max(),  # width in code units
+            resolution=self.resolution,  # image resolution
+            item=imag_field,  # respective field that is being projected
+            north_vector=self.northvector,  # self.view_settings['north_vector'],
+            # depth = kwargs.get('depth', None)
+        )
+
+        self.image = np.array(prji).T
+        return self.image
     
     def derive_bottom_corner_coords(self, ds):
         """
@@ -72,8 +98,7 @@ class SyntheticImage():
 
         # x_bounds, y_bounds, z_bottom
         bottom_corners = list(itertools.product(x_bounds, y_bounds, z_bottom))
-
-
+        
 
         bottom_coords_ds = ...
         bottom_coords_helioprojective = ...
@@ -85,6 +110,7 @@ class SyntheticImage():
 
     def calculate_los_vector(self, obs_location, origin_coord):
         """
+        [DONE - Adapted from load_pyampp_data]
         By default: load origin coord and define bottom plane aligned with cardinal directions (selected in helioprojective tangent plane)
         Optional: define bottom_coords manually; model will be aligned with these coordinates
         """
@@ -213,7 +239,7 @@ class SyntheticFilterImage(SyntheticImage):
         if self.plot_settings:
             self.plot_settings['cmap'] = cmap[self.instr]
 
-    def proj_and_imag(self, **kwargs): # dataset, norm_vec, resolution, instr, **kwargs):
+    def proj_imag(self, **kwargs): # dataset, norm_vec, resolution, instr, **kwargs):
         """
         Function to compute projection of synthetic dataset using yt off_axis_projection module
         """
@@ -225,7 +251,7 @@ class SyntheticFilterImage(SyntheticImage):
         except:
             center = self.box.center
 
-        imag_field = str(instr) + '_filter_band'
+        imag_field = str(self.instr) + '_filter_band'
 
         prji = yt.off_axis_projection(
             self.box,
@@ -239,6 +265,7 @@ class SyntheticFilterImage(SyntheticImage):
         )
 
         self.image = np.array(prji).T
+        return self.image
 
     def make_synthetic_map(self, **kwargs):
         """
